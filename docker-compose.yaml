@@ -1,0 +1,22 @@
+services:
+    base: &base
+        build:
+            context: .
+        volumes:
+            - ${VOLUME_A}:/home/${USER}/${VOLUME_A}
+            # - ${VOLUME_B}:/home/${USER}/${VOLUME_B}
+            # - ${VOLUME_C}:/home/${USER}/${VOLUME_C}
+        cap_drop:
+            - all
+        security_opt:
+            - no-new-privileges
+    git:
+        <<: *base
+        build:
+            context: .
+            dockerfile: git.dockerfile
+
+volumes:
+    "${VOLUME_A}":
+    # "${VOLUME_B}":
+    # "${VOLUME_C}":
