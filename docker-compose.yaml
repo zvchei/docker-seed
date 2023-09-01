@@ -22,6 +22,13 @@ services:
             dockerfile: git.dockerfile
             args:
                 <<: [*args, *git-args]
+    dev:
+        <<: *base
+        build:
+            context: .
+            dockerfile: dev.dockerfile
+            args:
+                <<: *args
 
 volumes:
     storage:
