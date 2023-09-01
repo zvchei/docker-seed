@@ -1,22 +1,27 @@
-services:
-    base: &base
-        build:
-            context: .
-        volumes:
-            - ${VOLUME_A}:/home/${USER}/${VOLUME_A}
-            # - ${VOLUME_B}:/home/${USER}/${VOLUME_B}
-            # - ${VOLUME_C}:/home/${USER}/${VOLUME_C}
-        cap_drop:
-            - all
-        security_opt:
-            - no-new-privileges
+x-args: &args
+    USER: user
+    REPOSITORY: project
+
+x-git-args: &git-args
+    GIT_AUTHOR_NAME: author
+    GIT_AUTHOR_EMAIL: email@example.com
+
+x-base: &base
+    volumes:
+        - storage:/home/${USER}/${REPOSITORY}
+    cap_drop:
+        - all
+    security_opt:
+        - no-new-privileges
+
+services:      
     git:
         <<: *base
         build:
             context: .
             dockerfile: git.dockerfile
+            args:
+                <<: [*args, *git-args]
 
 volumes:
-    "${VOLUME_A}":
-    # "${VOLUME_B}":
-    # "${VOLUME_C}":
+    storage:

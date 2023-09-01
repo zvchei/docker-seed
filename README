@@ -1,3 +1,0 @@
-Edit git.dockerfile and docker-compose.yaml and customize the commands and the entries related to the VOLUME_X variables.
-Use the git.docvkerfile as a base for other services, and the "base" section in the docker-compose configuration as a
-base for those services. See the "git" service as an example.
