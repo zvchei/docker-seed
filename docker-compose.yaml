@@ -29,6 +29,7 @@ services:
             dockerfile: dev.dockerfile
             args:
                 <<: *args
+        command: sleep infinity
     start:
         <<: *base
         build:
