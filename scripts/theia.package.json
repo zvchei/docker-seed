@@ -1,0 +1,34 @@
+{
+  "private": true,
+  "dependencies": {
+    "@theia/ai-chat-ui": "latest",
+    "@theia/ai-code-completion": "latest",
+    "@theia/ai-history": "latest",
+    "@theia/ai-ollama": "latest",
+    "@theia/ai-openai": "latest",
+    "@theia/ai-terminal": "latest",
+    "@theia/ai-workspace-agent": "latest",
+    "@theia/bulk-edit": "latest",
+    "@theia/callhierarchy": "latest",
+    "@theia/electron": "latest",
+    "@theia/file-search": "latest",
+    "@theia/git": "latest",
+    "@theia/markers": "latest",
+    "@theia/messages": "latest",
+    "@theia/mini-browser": "latest",
+    "@theia/navigator": "latest",
+    "@theia/outline-view": "latest",
+    "@theia/plugin-ext-vscode": "latest",
+    "@theia/preferences": "latest",
+    "@theia/preview": "latest",
+    "@theia/search-in-workspace": "latest",
+    "@theia/terminal": "latest",
+    "@theia/vsx-registry": "latest",
+    "electron": "28.2.8"
+  },
+  "devDependencies": {
+    "@theia/cli": "latest"
+  },
+  "theiaPluginsDir": "plugins",
+  "theiaPlugins": {}
+}

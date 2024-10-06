@@ -1,3 +1,8 @@
+# Usage
+
+TODO
+
+# Details
 The following files should be reviewed and updated according to the project's needs.
 
 ### .env
@@ -11,3 +16,7 @@ Defines a container for source repository related operations. The primary focus 
 
 ### dev.dockerfile
 Defines a container for developmental purposes. This configuration should be adjusted to establish a development environment suitable for the projects at hand. Ideally, any commands added into this configuration should be executed by a non-root user, i.e. following the `USER=${USER}` line. This precaution is particularly important for commands that might execute untrusted code, such as `npm install`. For additional level of protection a separate container might be created for every repository in the project.
+
+### start.dockerfile
+
+TODO

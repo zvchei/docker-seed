@@ -1,6 +1,7 @@
 x-args: &args
     USER: ${CONTAINER_USER}
-    REPOSITORY: ${REPOSITORY}
+    USER_ID: ${CONTAINER_USER_ID}
+    PROJECT: ${PROJECT}
 
 x-git-args: &git-args
     GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}
@@ -8,11 +9,11 @@ x-git-args: &git-args
 
 x-base: &base
     volumes:
-        - storage:/home/${CONTAINER_USER}/${REPOSITORY}
-    cap_drop:
-        - all
-    security_opt:
-        - no-new-privileges
+        - storage:/home/${CONTAINER_USER}/${PROJECT}
+        # TODO: Add a volume to persist Theia's configuration and plugins.
+    cap_drop: ["all"]
+    security_opt: ["no-new-privileges"]
+    user: ${CONTAINER_USER_ID}
 
 services:
     git:
@@ -29,7 +30,8 @@ services:
             dockerfile: dev.dockerfile
             args:
                 <<: *args
-        command: sleep infinity
+        ports:
+            - 7070:8080
     start:
         <<: *base
         build:
