@@ -1,7 +1,7 @@
-FROM ubuntu:22.04
+FROM ubuntu:latest
 
 ARG USER
-ARG REPOSITORY
+ARG PROJECT
 
 ENV DEBCONF_NOWARNINGS=yes
 ENV DEBIAN_FRONTEND=noninteractive
@@ -9,11 +9,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get -y upgrade
 
-RUN useradd -m ${USER}
+RUN groupadd -g ${USER_ID} ${USER}
+RUN useradd ${USER} -u ${USER_ID} -g ${USER_ID} -m -s /bin/bash
 USER ${USER}
 
-RUN mkdir /home/${USER}/${REPOSITORY}
+RUN mkdir /home/${USER}/${PROJECT}
 # Directories for additional repositories must be created here, otherwise they
 # won't be writable from within the container.
 
-WORKDIR /home/${USER}/${REPOSITORY}
+WORKDIR /home/${USER}/${PROJECT}
