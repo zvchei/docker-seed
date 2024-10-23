@@ -48,6 +48,7 @@ ENV SHELL=/bin/bash
 ENV THEIA_DEFAULT_PLUGINS=local-dir:/home/${USER}/theia/plugins
 
 RUN mkdir /home/${USER}/theia
+RUN mkdir /home/${USER}/.theia
 WORKDIR /home/${USER}/theia
 COPY --from=theia --chown=node:node /home/${USER}/theia .
 

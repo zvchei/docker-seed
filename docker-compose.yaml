@@ -10,7 +10,7 @@ x-git-args: &git-args
 x-base: &base
     volumes:
         - storage:/home/${CONTAINER_USER}/${PROJECT}
-        # TODO: Add a volume to persist Theia's configuration and plugins.
+        - theia:/home/${CONTAINER_USER}/.theia
     cap_drop: ["all"]
     security_opt: ["no-new-privileges"]
     user: ${CONTAINER_USER_ID}
@@ -42,3 +42,4 @@ services:
 
 volumes:
     storage:
+    theia:
