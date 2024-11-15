@@ -8,9 +8,6 @@ x-git-args: &git-args
     GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
 
 x-base: &base
-    volumes:
-        - storage:/home/${CONTAINER_USER}/${PROJECT}
-        - theia:/home/${CONTAINER_USER}/.theia
     cap_drop: ["all"]
     security_opt: ["no-new-privileges"]
     user: ${CONTAINER_USER_ID}
@@ -18,6 +15,8 @@ x-base: &base
 services:
     git:
         <<: *base
+        volumes:
+            - storage:/home/${CONTAINER_USER}/${PROJECT}
         build:
             context: .
             dockerfile: git.dockerfile
@@ -25,15 +24,21 @@ services:
                 <<: [*args, *git-args]
     dev:
         <<: *base
+        volumes:
+            - storage:/home/${CONTAINER_USER}/${PROJECT}
+            - vscode:/home/${CONTAINER_USER}/.vscode
+            - vscode-server:/home/${CONTAINER_USER}/.vscode-server
         build:
             context: .
             dockerfile: dev.dockerfile
             args:
                 <<: *args
         ports:
-            - 7070:8080
+            - 8080:8080
     start:
         <<: *base
+        volumes:
+            - storage:/home/${CONTAINER_USER}/${PROJECT}
         build:
             context: .
             dockerfile: start.dockerfile
@@ -42,4 +47,5 @@ services:
 
 volumes:
     storage:
-    theia:
+    vscode:
+    vscode-server:
