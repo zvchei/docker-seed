@@ -44,6 +44,14 @@ services:
             dockerfile: start.dockerfile
             args:
                 <<: *args
+        # Uncomment the following section to enable GPU access for the container:
+        # deploy:
+        #     resources:
+        #         reservations:
+        #             devices:
+        #                 - driver: nvidia
+        #                   capabilities: [gpu]
+        #                   device_ids: ["0"]
 
 volumes:
     storage:
