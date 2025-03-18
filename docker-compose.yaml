@@ -10,7 +10,15 @@ x-git-args: &git-args
 x-base: &base
     cap_drop: ["all"]
     security_opt: ["no-new-privileges"]
-    user: ${CONTAINER_USER_ID}
+
+x-gpu: &gpu
+    deploy:
+        resources:
+            reservations:
+                devices:
+                    - driver: nvidia
+                      capabilities: [gpu]
+                      count: all
 
 services:
     git:
@@ -35,23 +43,33 @@ services:
                 <<: *args
         ports:
             - 8080:8080
-    start:
-        <<: *base
+    cli:
+        <<: 
+            - *base
+            # Uncomment the following line to enable GPU support:
+            # - *gpu
         volumes:
             - storage:/home/${CONTAINER_USER}/${PROJECT}
         build:
             context: .
-            dockerfile: start.dockerfile
+            dockerfile: cli.dockerfile
             args:
                 <<: *args
-        # Uncomment the following section to enable GPU access for the container:
-        # deploy:
-        #     resources:
-        #         reservations:
-        #             devices:
-        #                 - driver: nvidia
-        #                   capabilities: [gpu]
-        #                   device_ids: ["0"]
+    gui:
+        <<: 
+            - *base 
+            - *gpu
+        volumes:
+            - storage:/home/${CONTAINER_USER}/${PROJECT}
+        build:
+            context: .
+            dockerfile: gui.dockerfile
+            args:
+                <<: *args
+        ports:
+            - 8900:5900
+        init: true
+
 
 volumes:
     storage:
