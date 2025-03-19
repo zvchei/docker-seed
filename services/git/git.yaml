@@ -1,0 +1,16 @@
+services:
+    git:
+        extends:
+            file: ../common/base.yaml
+            service: base
+        volumes:
+            - root:/home/${CONTAINER_USER}/${PROJECT}
+        build:
+            context: .
+            additional_contexts:
+                credentials: ../../credentials
+            args:
+                GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
+                GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}
+volumes:
+    root:

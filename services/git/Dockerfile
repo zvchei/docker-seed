@@ -16,15 +16,15 @@ RUN useradd ${USER} -u ${USER_ID} -g ${USER_ID} -m -s /bin/bash
 USER ${USER}
 
 RUN mkdir --mode=0700 /home/${USER}/.ssh
-COPY --chown=${USER} credentials/* /home/${USER}/.ssh/
+COPY --chown=${USER} --from=credentials * /home/${USER}/.ssh/
 
-COPY --chown=${USER} scripts/git-setup.sh /home/${USER}/
+COPY --chown=${USER} --from=common configure-git.sh /home/${USER}/
 
 ARG GIT_AUTHOR_NAME
 ARG GIT_AUTHOR_EMAIL
 ENV GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME}
 ENV GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL}
-RUN bash /home/${USER}/git-setup.sh
+RUN bash /home/${USER}/configure-git.sh
 
 RUN mkdir /home/${USER}/${PROJECT}
 # Directories for additional repositories must be created here, otherwise they

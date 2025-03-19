@@ -1,0 +1,16 @@
+services:
+    code:
+        extends:
+            file: ../common/base.yaml
+            service: base
+        volumes:
+            - root:/home/${CONTAINER_USER}/${PROJECT}
+            - vscode:/home/${CONTAINER_USER}/.vscode
+            - vscode-server:/home/${CONTAINER_USER}/.vscode-server
+        build: .
+        ports:
+            - 8080:8080
+volumes:
+    root:
+    vscode:
+    vscode-server:

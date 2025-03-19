@@ -1,0 +1,14 @@
+services:
+    gui:
+        extends:
+            file: ../common/base.yaml
+            service: base # Use 'gpu' to enable GPU support
+        volumes:
+            - root:/home/${CONTAINER_USER}/${PROJECT}
+        build:
+            context: .
+        ports:
+            - 8900:5900
+        init: true
+volumes:
+    root:
