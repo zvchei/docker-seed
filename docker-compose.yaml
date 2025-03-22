@@ -3,3 +3,4 @@ include:
     - services/cli/cli.yaml
     - services/code/code.yaml
     - services/gui/gui.yaml
+    - services/jupyter/jupyter.yaml
