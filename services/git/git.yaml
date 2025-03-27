@@ -9,6 +9,7 @@ services:
             context: .
             additional_contexts:
                 credentials: ../../credentials
+                localhost/base: service:base
             args:
                 GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
                 GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}

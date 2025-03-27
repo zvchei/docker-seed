@@ -2,12 +2,14 @@ services:
     jupyter:
         extends:
             file: ../common/base.yaml
-            service: gpu # Use 'gpu' to enable GPU support
+            service: base # Use 'gpu' to enable GPU support
         volumes:
             - root:/home/${CONTAINER_USER}/${PROJECT}
-            - env:/home/${CONTAINER_USER}/env-jupyter
+            - env:/home/${CONTAINER_USER}/env
         build:
             context: .
+            additional_contexts:
+                localhost/base: service:python
         ports:
             - 8888:8888
 volumes:

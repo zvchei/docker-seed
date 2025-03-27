@@ -1,16 +1,13 @@
 services:
-    gui:
+    python:
         extends:
             file: ../common/base.yaml
-            service: base # Use 'gpu' to enable GPU support
+            service: base
         volumes:
-            - root:/home/${CONTAINER_USER}/${PROJECT}
+            - env:/home/${CONTAINER_USER}/env
         build:
             context: .
             additional_contexts:
                 localhost/base: service:base
-        ports:
-            - 8900:5900
-        init: true
 volumes:
-    root:
+    env:

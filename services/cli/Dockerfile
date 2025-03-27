@@ -1,21 +1,13 @@
-FROM ubuntu:latest
+FROM localhost/base
 
 ARG USER
-ARG USER_ID
 ARG PROJECT
 
-ENV DEBCONF_NOWARNINGS=yes
-ENV DEBIAN_FRONTEND=noninteractive
+# USER root
+# RUN apt-get -y install <packages needed to run the project>
+# USER ${USER}
 
-RUN apt-get update
-RUN apt-get -y upgrade
-
-RUN groupadd -g ${USER_ID} ${USER}
-RUN useradd ${USER} -u ${USER_ID} -g ${USER_ID} -m -s /bin/bash
-USER ${USER}
-
-RUN mkdir /home/${USER}/${PROJECT}
-# Directories for additional repositories must be created here, otherwise they
-# won't be writable from within the container.
+# Directories for any additional volumes must be created here to ensure writing
+# permissions from within the container.
 
 WORKDIR /home/${USER}/${PROJECT}

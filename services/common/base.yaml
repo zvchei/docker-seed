@@ -4,14 +4,16 @@ services:
         security_opt: ["no-new-privileges"]
         user: ${CONTAINER_USER_ID}:${CONTAINER_USER_ID}
         build:
+            context: .
             additional_contexts:
-                common: ../common
+                base: ../common
             args:
                 USER: ${CONTAINER_USER}
                 USER_ID: ${CONTAINER_USER_ID}
                 PROJECT: ${PROJECT}
                 GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
                 GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}
+
     gpu:
         extends:
             service: base

@@ -7,7 +7,10 @@ services:
             - root:/home/${CONTAINER_USER}/${PROJECT}
             - vscode:/home/${CONTAINER_USER}/.vscode
             - vscode-server:/home/${CONTAINER_USER}/.vscode-server
-        build: .
+        build:
+            context: .
+            additional_contexts:
+                localhost/base: service:base
         ports:
             - 8080:8080
 volumes:

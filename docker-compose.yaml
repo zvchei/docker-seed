@@ -1,6 +1,11 @@
 include:
+    - services/common/base.yaml
+
     - services/git/git.yaml
     - services/cli/cli.yaml
+    # - services/gui/gui.yaml
+
     - services/code/code.yaml
-    - services/gui/gui.yaml
-    - services/jupyter/jupyter.yaml
+
+    # - services/python/python.yaml
+    # - services/jupyter/jupyter.yaml

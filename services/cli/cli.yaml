@@ -7,5 +7,7 @@ services:
             - root:/home/${CONTAINER_USER}/${PROJECT}
         build:
             context: .
+            additional_contexts:
+                localhost/base: service:base
 volumes:
     root:
