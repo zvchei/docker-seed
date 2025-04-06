@@ -1,11 +1,12 @@
 include:
     - services/common/base.yaml
-
-    - services/git/git.yaml
     - services/cli/cli.yaml
-    # - services/gui/gui.yaml
-
     - services/code/code.yaml
 
+    # Uncomment the respective lines to include the services you need.
+    # - services/git/git.yaml
+    # - services/gui/gui.yaml
+
+    # The Python service is used as a base for other services like Jupyter.
     # - services/python/python.yaml
     # - services/jupyter/jupyter.yaml

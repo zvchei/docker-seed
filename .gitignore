@@ -1,2 +1,6 @@
-credentials/*
-!credentials/README
+secrets/*
+!secrets/git
+!secrets/README
+
+secrets/git/*
+!secrets/git/README
