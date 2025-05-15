@@ -10,3 +10,5 @@ include:
     # The Python service is used as a base for other services like Jupyter.
     # - services/python/docker-compose.yaml
     # - services/jupyter/docker-compose.yaml
+
+    # - services/node/docker-compose.yaml
