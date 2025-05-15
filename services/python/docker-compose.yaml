@@ -1,7 +1,7 @@
 services:
     python:
         extends:
-            file: ../common/base.yaml
+            file: ../common/docker-compose.yaml
             service: base
         volumes:
             - env:/home/${CONTAINER_USER}/env

@@ -1,17 +1,19 @@
 services:
-    git:
+    code:
         extends:
-            file: ../common/base.yaml
+            file: ../common/docker-compose.yaml
             service: base
         volumes:
             - root:/home/${CONTAINER_USER}/${PROJECT}
+            - vscode:/home/${CONTAINER_USER}/.vscode
+            - vscode-server:/home/${CONTAINER_USER}/.vscode-server
         build:
             context: .
             additional_contexts:
-                credentials: ../../secrets/git
                 localhost/base: service:base
-            args:
-                GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
-                GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}
+        ports:
+            - 8080:8080
 volumes:
     root:
+    vscode:
+    vscode-server:

@@ -1,12 +1,12 @@
 include:
-    - services/common/base.yaml
-    - services/cli/cli.yaml
-    - services/code/code.yaml
+    - services/common/docker-compose.yaml
+    - services/cli/docker-compose.yaml
+    - services/code/docker-compose.yaml
 
     # Uncomment the respective lines to include the services you need.
-    # - services/git/git.yaml
-    # - services/gui/gui.yaml
+    # - services/git/docker-compose.yaml
+    # - services/gui/docker-compose.yaml
 
     # The Python service is used as a base for other services like Jupyter.
-    # - services/python/python.yaml
-    # - services/jupyter/jupyter.yaml
+    # - services/python/docker-compose.yaml
+    # - services/jupyter/docker-compose.yaml

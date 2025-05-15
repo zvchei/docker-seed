@@ -1,7 +1,7 @@
 services:
-    cli:
+    gui:
         extends:
-            file: ../common/base.yaml
+            file: ../common/docker-compose.yaml
             service: base # Use 'gpu' to enable GPU support
         volumes:
             - root:/home/${CONTAINER_USER}/${PROJECT}
@@ -9,5 +9,8 @@ services:
             context: .
             additional_contexts:
                 localhost/base: service:base
+        ports:
+            - 8900:5900
+        init: true
 volumes:
     root:
