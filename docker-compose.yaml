@@ -6,6 +6,7 @@ include:
     # Uncomment the respective lines to include the services you need.
     # - services/git/docker-compose.yaml
     # - services/gui/docker-compose.yaml
+    # - services/ollama/docker-compose.yaml
 
     # The Python service is used as a base for other services like Jupyter.
     # - services/python/docker-compose.yaml
