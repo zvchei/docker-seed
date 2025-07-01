@@ -4,10 +4,12 @@ services:
             file: ../common/docker-compose.yaml
             service: base
         volumes:
+            - root:/home/${CONTAINER_USER}/${PROJECT}
             - env:/home/${CONTAINER_USER}/env
         build:
             context: .
             additional_contexts:
                 localhost/base: service:base
 volumes:
+    root:
     env:
