@@ -11,9 +11,12 @@ USER ${USER}
 ENV HOME=/home/${USER}
 WORKDIR $HOME
 
-RUN curl -sLO https://nodejs.org/dist/v20.10.0/node-v20.10.0-linux-x64.tar.xz && \
-    tar xJf node-v20.10.0-linux-x64.tar.xz -C $HOME && \
-    rm node-v20.10.0-linux-x64.tar.xz
-ENV PATH="${PATH}:$HOME/node-v20.10.0-linux-x64/bin"
+ARG NODE_VERSION=v22.17.0
+ARG NODE_NAME=node-${NODE_VERSION}-linux-x64
+
+RUN curl -sLO https://nodejs.org/dist/${NODE_VERSION}/${NODE_NAME}.tar.xz && \
+    tar xJf ${NODE_NAME}.tar.xz -C $HOME && \
+    rm ${NODE_NAME}.tar.xz
+ENV PATH="${PATH}:$HOME/${NODE_NAME}/bin"
 
 WORKDIR /home/${USER}/${PROJECT}
