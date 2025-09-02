@@ -1,0 +1,15 @@
+services:
+    dotnet:
+        extends:
+            file: ../common/docker-compose.yaml
+            service: base
+        volumes:
+            - root:/home/${CONTAINER_USER}/${PROJECT}
+        build:
+            context: .
+            additional_contexts:
+                localhost/base: service:base
+                secrets: ../../secrets
+
+volumes:
+    root:
