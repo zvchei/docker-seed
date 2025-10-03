@@ -7,8 +7,9 @@ ENV DEBCONF_NOWARNINGS=yes
 ENV DEBIAN_FRONTEND=noninteractive
 
 USER root
-RUN apt-get -y install xvfb x11vnc
-# RUN apt-get -y install <packages needed to run the project>
+RUN apt-get -y install xvfb x11vnc && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/*
 USER ${USER}
 
 # Directories for any additional volumes must be created here to ensure writing

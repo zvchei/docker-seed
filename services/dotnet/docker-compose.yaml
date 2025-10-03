@@ -5,6 +5,9 @@ services:
             service: base
         volumes:
             - root:/home/${CONTAINER_USER}/${PROJECT}
+            - secrets:/home/${CONTAINER_USER}/.microsoft/usersecrets/
+            - msal:/home/${CONTAINER_USER}/.local/.IdentityService/
+            - nuget:/home/${CONTAINER_USER}/.nuget
         build:
             context: .
             additional_contexts:
@@ -13,3 +16,6 @@ services:
 
 volumes:
     root:
+    secrets:
+    msal:
+    nuget:

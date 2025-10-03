@@ -4,11 +4,11 @@ services:
             file: ../common/docker-compose.yaml
             service: gpu
         volumes:
-            - ollama_storage:/home/${CONTAINER_USER}/
+            - ollama_storage:/home/${CONTAINER_USER}/.ollama
         build:
             context: .
             additional_contexts:
-                localhost/base: service:base        
+                localhost/base: service:base
         ports:
             - 11434:11434
 

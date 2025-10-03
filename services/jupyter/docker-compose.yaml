@@ -6,6 +6,8 @@ services:
         volumes:
             - root:/home/${CONTAINER_USER}/${PROJECT}
             - env:/home/${CONTAINER_USER}/env
+            - local:/home/${CONTAINER_USER}/.local
+            - jupyter:/home/${CONTAINER_USER}/.jupyter
         build:
             context: .
             additional_contexts:
@@ -15,4 +17,5 @@ services:
 volumes:
     root:
     env:
-    # TODO: Add a volume for the JupyterLab extensions
+    local:
+    jupyter:

@@ -5,7 +5,9 @@ ARG PROJECT
 
 USER root
 RUN apt-get -y update && \
-    apt-get -y install curl xz-utils
+    apt-get -y install curl xz-utils && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/*
 USER ${USER}
 
 ENV HOME=/home/${USER}
@@ -18,5 +20,7 @@ RUN curl -sLO https://nodejs.org/dist/${NODE_VERSION}/${NODE_NAME}.tar.xz && \
     tar xJf ${NODE_NAME}.tar.xz -C $HOME && \
     rm ${NODE_NAME}.tar.xz
 ENV PATH="${PATH}:$HOME/${NODE_NAME}/bin"
+
+RUN mkdir -p $HOME/.npm
 
 WORKDIR /home/${USER}/${PROJECT}

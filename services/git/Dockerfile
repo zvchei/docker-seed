@@ -4,7 +4,10 @@ ARG USER
 ARG PROJECT
 
 USER root
-RUN apt-get -y install git
+RUN apt-get -y update && \
+    apt-get -y install git && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/*
 USER ${USER}
 
 RUN mkdir --mode=0700 /home/${USER}/.ssh

@@ -5,16 +5,18 @@ services:
             service: base # Use 'gpu' to enable GPU support
         volumes:
             - root:/home/${CONTAINER_USER}/${PROJECT}
+            - npm:/home/${CONTAINER_USER}/.npm
         build:
             context: .
             additional_contexts:
                 localhost/base: service:base
-        
+
         # Update the port mapping to expose the service accordingly.
         # ports:
         #     - 8090:8080
-        
+
         # Set a custom command to run the service.
         # command: npm run ...
 volumes:
     root:
+    npm:

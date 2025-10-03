@@ -2,6 +2,9 @@ services:
     base:
         cap_drop: ["all"]
         security_opt: ["no-new-privileges"]
+        read_only: true
+        tmpfs:
+            - /tmp:noexec,nosuid,nodev,mode=1777
         user: ${CONTAINER_USER_ID}:${CONTAINER_USER_ID}
         build:
             context: .

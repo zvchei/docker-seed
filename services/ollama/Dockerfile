@@ -4,7 +4,11 @@ ARG USER
 ARG PROJECT
 
 USER root
-RUN apt-get update && apt-get -y upgrade && apt-get -y install curl
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y install curl && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://ollama.com/install.sh | sh
 USER ${USER}
 
@@ -28,6 +32,8 @@ ENV OLLAMA_ORIGINS='*'
 # OLLAMA_LLM_LIBRARY         Set LLM library to bypass autodetection
 # OLLAMA_GPU_OVERHEAD        Reserve a portion of VRAM per GPU (bytes)
 # OLLAMA_LOAD_TIMEOUT        How long to allow model loads to stall before giving up (default "5m")
+
+RUN mkdir -p /home/${USER}/.ollama
 
 ENTRYPOINT ["ollama"]
 CMD ["serve"]
