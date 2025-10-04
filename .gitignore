@@ -6,4 +6,4 @@ secrets/git/*
 !secrets/git/README
 
 services/*/downloads
-./docker-compose.yaml
+docker-compose.yaml

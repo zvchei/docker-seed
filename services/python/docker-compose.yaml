@@ -4,12 +4,22 @@ services:
             file: ../common/docker-compose.yaml
             service: base
         volumes:
-            - root:/home/${CONTAINER_USER}/${PROJECT}
+            - cache:/home/${CONTAINER_USER}/.cache/pip
             - env:/home/${CONTAINER_USER}/env
+            - root:/home/${CONTAINER_USER}/${PROJECT}
         build:
             context: .
             additional_contexts:
                 localhost/base: service:base
+        networks: ["python_net"]
+        env_file: [".env"]
+
+networks:
+    python_net:
+        name: ${NETWORK_NAME}
+        external: true
+
 volumes:
-    root:
+    cache:
     env:
+    root:
