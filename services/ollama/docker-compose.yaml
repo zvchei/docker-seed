@@ -11,6 +11,12 @@ services:
                 localhost/base: service:base
         ports:
             - 11434:11434
+        networks:
+            - ollama_network
 
 volumes:
     ollama_storage:
+
+networks:
+    ollama_network:
+        external: true
