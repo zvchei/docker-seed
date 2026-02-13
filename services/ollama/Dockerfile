@@ -14,6 +14,8 @@ USER ${USER}
 
 WORKDIR /home/${USER}
 ENV OLLAMA_ORIGINS='*'
+ENV OLLAMA_HOST='0.0.0.0:11434'
+ENV OLLAMA_VULKAN=1
 
 # Environment variables for Ollama version 0.9.3
 #
@@ -32,6 +34,7 @@ ENV OLLAMA_ORIGINS='*'
 # OLLAMA_LLM_LIBRARY         Set LLM library to bypass autodetection
 # OLLAMA_GPU_OVERHEAD        Reserve a portion of VRAM per GPU (bytes)
 # OLLAMA_LOAD_TIMEOUT        How long to allow model loads to stall before giving up (default "5m")
+# OLLAMA_VULKAN              Enable Vulkan backend (default 0)
 
 RUN mkdir -p /home/${USER}/.ollama
 
