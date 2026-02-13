@@ -8,6 +8,7 @@ services:
             - vscode:/home/${CONTAINER_USER}/.vscode
             - vscode-server:/home/${CONTAINER_USER}/.vscode-server
             - cache:/home/${CONTAINER_USER}/.cache
+            - env:/home/${CONTAINER_USER}/env
         build:
             context: .
             additional_contexts:
@@ -19,3 +20,4 @@ volumes:
     vscode:
     vscode-server:
     cache:
+    env:
