@@ -5,6 +5,7 @@ ARG PROJECT
 
 RUN mkdir -p /home/${USER}/.local && \
     mkdir -p /home/${USER}/.jupyter
+RUN mkdir -p /home/${USER}/env
 
 RUN env/bin/pip install jupyterlab
 

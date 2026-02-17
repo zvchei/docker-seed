@@ -16,7 +16,7 @@ RUN groupadd -g ${USER_ID} ${USER}
 RUN useradd ${USER} -u ${USER_ID} -g ${USER_ID} -m -s /bin/bash
 USER ${USER}
 
-RUN mkdir /home/${USER}/${PROJECT}
+RUN mkdir -p /home/${USER}/${PROJECT}
 
 # Directories for any additional volumes common to all services must be
 # created here to ensure writing permissions from within the container.

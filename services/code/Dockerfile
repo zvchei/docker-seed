@@ -20,9 +20,10 @@ ENV GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME}
 ENV GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL}
 RUN bash /home/${USER}/configure-git.sh
 
-RUN mkdir /home/${USER}/.vscode
-RUN mkdir /home/${USER}/.vscode-server
-RUN mkdir /home/${USER}/.cache
+RUN mkdir -p /home/${USER}/.vscode
+RUN mkdir -p /home/${USER}/.vscode-server
+RUN mkdir -p /home/${USER}/.cache
+RUN mkdir -p /home/${USER}/env
 
 # Directories for any additional volumes must be created here to ensure writing
 # permissions from within the container.
