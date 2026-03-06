@@ -1,5 +1,6 @@
 services:
     node:
+        hostname: ${PROJECT}-node
         extends:
             file: ../common/docker-compose.yaml
             service: base # Use 'gpu' to enable GPU support

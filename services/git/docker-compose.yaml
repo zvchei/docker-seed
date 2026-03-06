@@ -1,5 +1,6 @@
 services:
     git:
+        hostname: ${PROJECT}-git
         extends:
             file: ../common/docker-compose.yaml
             service: base

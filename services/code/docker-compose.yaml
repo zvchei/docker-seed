@@ -1,5 +1,6 @@
 services:
     code:
+        hostname: ${PROJECT}-code
         extends:
             file: ../common/docker-compose.yaml
             service: base

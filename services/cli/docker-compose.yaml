@@ -1,5 +1,6 @@
 services:
     cli:
+        hostname: ${PROJECT}-cli
         extends:
             file: ../common/docker-compose.yaml
             service: base # Use 'gpu' to enable GPU support

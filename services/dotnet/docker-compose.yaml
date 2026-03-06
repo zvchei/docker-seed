@@ -1,5 +1,6 @@
 services:
     dotnet:
+        hostname: ${PROJECT}-dotnet
         extends:
             file: ../common/docker-compose.yaml
             service: base

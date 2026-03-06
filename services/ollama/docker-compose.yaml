@@ -1,5 +1,6 @@
 services:
     ollama:
+        hostname: ${PROJECT}-ollama
         extends:
             file: ../common/docker-compose.yaml
             service: gpu

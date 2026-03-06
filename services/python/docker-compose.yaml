@@ -1,5 +1,6 @@
 services:
     python:
+        hostname: ${PROJECT}-python
         extends:
             file: ../common/docker-compose.yaml
             service: base
