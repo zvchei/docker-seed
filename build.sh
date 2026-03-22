@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICES_DIR="$SCRIPT_DIR/services"
 SERVICES_LIST="$SCRIPT_DIR/services.list"
 
-echo "Starting setup..."
+echo "Starting build..."
 
 # Run the setup scripts for each service
 

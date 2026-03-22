@@ -1,0 +1,8 @@
+{
+    "description": "Cursor CLI",
+    "apt_packages": ["curl"],
+    "volumes": {
+        "cursor": ".cursor"
+    },
+    "cmd": ["cursor-agent"]
+}

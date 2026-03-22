@@ -1,0 +1,17 @@
+[
+    {
+        "name": "node",
+        "enabled": false,
+        "templates": [
+            "node"
+        ]
+    },
+    {
+        "name": "code_with_cursor",
+        "enabled": false,
+        "templates": [
+            "cursor-cli",
+            "vscode"
+        ]
+    }
+]

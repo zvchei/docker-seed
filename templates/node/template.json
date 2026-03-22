@@ -1,0 +1,10 @@
+{
+    "description": "Node.js v22",
+    "apt_packages": ["curl", "xz-utils"],
+    "volumes": {
+        "npm": ".npm",
+        "node": ".node"
+    },
+    "ports": ["10080:8080"],
+    "cmd": ["node"]
+}
