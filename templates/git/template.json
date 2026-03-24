@@ -1,0 +1,8 @@
+{
+    "description": "Git CLI",
+    "apt_packages": ["git"],
+    "build_args": {
+        "GIT_AUTHOR_NAME": "${GIT_AUTHOR_NAME}",
+        "GIT_AUTHOR_EMAIL": "${GIT_AUTHOR_EMAIL}"
+    }
+}

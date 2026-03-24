@@ -66,6 +66,7 @@ def merge_templates(templates: list[Template]) -> Merged:
     volumes: dict[str, str] = {}
     ports: list[str] = []
     cmd: list[str] | None = None
+    build_args: dict[str, str] = {}
 
     for tpl in templates:
         m: Manifest = tpl["manifest"]
@@ -88,6 +89,9 @@ def merge_templates(templates: list[Template]) -> Merged:
         if "cmd" in m:
             cmd = m["cmd"]
 
+        for arg_name, arg_value in m.get("build_args", {}).items():
+            build_args[arg_name] = str(arg_value)
+
     return {
         "apt_packages": apt_packages,
         "root_fragments": root_fragments,
@@ -95,6 +99,7 @@ def merge_templates(templates: list[Template]) -> Merged:
         "volumes": volumes,
         "ports": ports,
         "cmd": cmd,
+        "build_args": build_args,
     }
 
 
@@ -106,6 +111,10 @@ def generate_dockerfile(merged: Merged) -> str:
         "ARG PROJECT",
         "ENV HOME=/home/${USER}",
     ]
+
+    for arg_name in merged.get("build_args", {}):
+        lines.append(f"ARG {arg_name}")
+        lines.append(f"ENV {arg_name}=${{{arg_name}}}")
 
     lines.append("")
     lines.append("USER root")
@@ -163,6 +172,12 @@ def generate_compose(name: str, merged: Merged) -> str:
     lines.append(f"{indent}{indent}{indent}context: .")
     lines.append(f"{indent}{indent}{indent}additional_contexts:")
     lines.append(f"{indent}{indent}{indent}{indent}localhost/base: service:base")
+
+    build_args: dict[str, str] = merged.get("build_args", {})
+    if build_args:
+        lines.append(f"{indent}{indent}{indent}args:")
+        for arg_name, compose_value in build_args.items():
+            lines.append(f"{indent}{indent}{indent}{indent}{arg_name}: {compose_value}")
 
     if merged["ports"]:
         lines.append(f"{indent}{indent}ports:")

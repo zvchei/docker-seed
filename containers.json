@@ -8,8 +8,9 @@
     },
     {
         "name": "code_with_cursor",
-        "enabled": false,
+        "enabled": true,
         "templates": [
+            "git",
             "cursor-cli",
             "vscode"
         ]
