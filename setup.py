@@ -221,18 +221,20 @@ def main() -> None:
         templates: list[Template] = [load_template(t) for t in template_names]
         merged: Merged = merge_templates(templates)
 
+        container_main = container.get("main")
+        if container_main is not None:
+            tpl_manifest = load_template(container_main)["manifest"]
+            if "cmd" not in tpl_manifest:
+                print(f"Error: template '{container_main}' has no 'cmd' field")
+                sys.exit(1)
+            merged["cmd"] = tpl_manifest["cmd"]
+
         container_cmd = container.get("cmd")
         if container_cmd is not None:
-            if isinstance(container_cmd, str):
-                tpl_manifest = load_template(container_cmd)["manifest"]
-                if "cmd" not in tpl_manifest:
-                    print(f"Error: template '{container_cmd}' has no 'cmd' field")
-                    sys.exit(1)
-                merged["cmd"] = tpl_manifest["cmd"]
-            elif isinstance(container_cmd, list):
+            if isinstance(container_cmd, list):
                 merged["cmd"] = container_cmd
             else:
-                print(f"Error: 'cmd' must be a template name (string) or command array")
+                print(f"Error: 'cmd' must be a command array (list of strings)")
                 sys.exit(1)
 
         service_dir: Path = SERVICES_DIR / name

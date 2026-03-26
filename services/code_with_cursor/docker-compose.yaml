@@ -1,0 +1,30 @@
+services:
+    code_with_cursor:
+        hostname: ${PROJECT}-code_with_cursor
+        extends:
+            file: ../common/docker-compose.yaml
+            service: base
+        volumes:
+            - root:/home/${CONTAINER_USER}/${PROJECT}
+            - cursor:/home/${CONTAINER_USER}/.cursor
+            - vscode:/home/${CONTAINER_USER}/.vscode
+            - vscode-server:/home/${CONTAINER_USER}/.vscode-server
+            - cache:/home/${CONTAINER_USER}/.cache
+            - env:/home/${CONTAINER_USER}/env
+        build:
+            context: .
+            additional_contexts:
+                localhost/base: service:base
+            args:
+                GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}
+                GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
+        ports:
+            - 8080:8080
+
+volumes:
+    root:
+    cursor:
+    vscode:
+    vscode-server:
+    cache:
+    env:
