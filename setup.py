@@ -224,10 +224,7 @@ def main() -> None:
         container_main = container.get("main")
         if container_main is not None:
             tpl_manifest = load_template(container_main)["manifest"]
-            if "cmd" not in tpl_manifest:
-                print(f"Error: template '{container_main}' has no 'cmd' field")
-                sys.exit(1)
-            merged["cmd"] = tpl_manifest["cmd"]
+            merged["cmd"] = tpl_manifest.get("cmd")
 
         container_cmd = container.get("cmd")
         if container_cmd is not None:
