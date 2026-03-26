@@ -7,3 +7,5 @@ secrets/git/*
 
 services/*/downloads
 ./docker-compose.yaml
+
+__pycache__/

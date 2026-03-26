@@ -102,7 +102,8 @@ Each entry combines one or more templates into one service:
     "name": "my-container",
     "enabled": true,
     "templates": ["node", "cursor-cli"],
-    "cmd": "node"
+    "main": "node",
+    "cmd": ["node", "server.js"]
   }
 ]
 ```
@@ -112,13 +113,14 @@ Each entry combines one or more templates into one service:
 | `name` | `string` | yes | Service name (use `_` not `+` in names). |
 | `enabled` | `boolean` | no | If `false`, this entry is skipped (default: `true`). |
 | `templates` | `string[]` | yes | Templates to merge; order matters. |
-| `cmd` | `string` or `string[]` | no | Overrides container command (see below). |
+| `main` | `string` | no | Name of the template whose `cmd` is used as the default (see below). |
+| `cmd` | `string[]` | no | Explicit command override, e.g. `["node", "server.js"]`. |
 
-**`cmd` behavior:**
+**Command resolution order:**
 
-1. **Omitted** - last template in `templates` that defines `cmd` wins; otherwise no `CMD`.
-2. **String** - name of a template whose `template.json` contains the `cmd` to use, e.g. `{ "cmd": "node" }`.
-3. **Array** - explicit command, e.g. `{ "cmd": ["node", "server.js"] }`.
+1. **`cmd` omitted, `main` omitted** - last template in `templates` that defines `cmd` wins; otherwise no `CMD`.
+2. **`main` set** - the named template's `cmd` is used as the default, e.g. `{ "main": "node" }`.
+3. **`cmd` set** - explicit array always overrides any default, e.g. `{ "cmd": ["node", "server.js"] }`.
 
 ## License
 
