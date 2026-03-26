@@ -234,6 +234,14 @@ def main() -> None:
                 print(f"Error: 'cmd' must be a command array (list of strings)")
                 sys.exit(1)
 
+        container_ports = container.get("ports")
+        if container_ports is not None:
+            if isinstance(container_ports, list):
+                merged["ports"] = container_ports
+            else:
+                print(f"Error: 'ports' must be a list of port mappings (list of strings)")
+                sys.exit(1)
+
         service_dir: Path = SERVICES_DIR / name
         if service_dir.exists():
             shutil.rmtree(service_dir)
