@@ -1,0 +1,13 @@
+{
+    "description": ".NET SDK",
+    "apt_packages": [
+        "curl",
+        "xz-utils",
+        "dnsutils",
+        "libicu74"
+    ],
+    "volumes": {
+        "secrets": ".microsoft/usersecrets",
+        "msal": ".local/.IdentityService"
+    }
+}

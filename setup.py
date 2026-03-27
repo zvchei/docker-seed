@@ -132,7 +132,9 @@ def generate_dockerfile(merged: Merged) -> str:
 
     lines.append("")
     lines.append("USER ${USER}")
-    lines.append("WORKDIR $HOME")
+
+    if merged["user_fragments"]:
+        lines.append("WORKDIR $HOME")
 
     for name, fragment in merged["user_fragments"]:
         lines.append("")
@@ -140,7 +142,7 @@ def generate_dockerfile(merged: Merged) -> str:
         lines.append(fragment.rstrip())
 
     lines.append("")
-    lines.append("WORKDIR /home/${USER}/${PROJECT}")
+    lines.append("WORKDIR $HOME/${PROJECT}")
 
     if merged["cmd"]:
         cmd_json: str = json.dumps(merged["cmd"])

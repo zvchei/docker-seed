@@ -14,8 +14,12 @@ services:
             context: .
             additional_contexts:
                 localhost/base: service:base
+            args:
+                GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}
+                GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
         ports:
             - 8080:8080
+
 volumes:
     root:
     vscode:

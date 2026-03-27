@@ -1,19 +1,30 @@
 [
     {
         "name": "node",
-        "enabled": false,
+        "enabled": true,
         "templates": [
             "node"
         ]
     },
     {
-        "name": "code_with_cursor",
+        "name": "cli",
+        "enabled": true,
+        "templates": []
+    },
+    {
+        "name": "code",
         "enabled": true,
         "templates": [
             "git",
-            "cursor-cli",
             "vscode"
         ],
         "main": "vscode"
+    },
+    {
+        "name": "dotnet",
+        "enabled": true,
+        "templates": [
+            "dotnet"
+        ]
     }
 ]
