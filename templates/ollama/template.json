@@ -1,6 +1,6 @@
 {
     "description": "Ollama LLM server",
-    "apt_packages": ["curl"],
+    "apt_packages": ["curl", "zstd"],
     "ports": ["11434:11434"],
     "volumes": {
         "ollama_storage": ".ollama"
