@@ -39,8 +39,7 @@
         "name": "gui",
         "enabled": true,
         "templates": ["gui"],
-        "ports": ["8900:5900"],
-        "init": true
+        "ports": ["8900:5900"]
     },
     {
         "name": "ollama",
