@@ -11,7 +11,7 @@ import json
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
 TEMPLATES_DIR: Path = SCRIPT_DIR / "templates"
@@ -23,12 +23,63 @@ type Manifest = dict[str, Any]
 type Fragment = tuple[str, str]
 type Merged = dict[str, Any]
 
+# Manifest keys that carry no mergeable data:
+NON_MANIFEST_KEYS: frozenset[str] = frozenset({"description"})
+
+# Fields where overwriting is mandatory instead of accumulating or merging:
+LAST_WINS_ARRAY_FIELDS: frozenset[str] = frozenset({"cmd"})
+
 
 class Template(TypedDict):
     name: str
     manifest: Manifest
     root_dockerfile: str
     user_dockerfile: str
+
+
+def merge_field(existing: Any, value: Any, key: str = "", method: str = "merge") -> Any:
+    if method not in {"merge", "replace"}:
+        print(f"Error: unknown merge method '{method}'")
+        sys.exit(1)
+
+    if (
+        existing is not None
+        and value is not None
+        and type(existing) is not type(value)
+    ):
+        print(
+            f"Error: type mismatch for field '{key}' across templates "
+            f"(got {type(existing).__name__} and {type(value).__name__})"
+        )
+        sys.exit(1)
+
+    if existing is None:
+        if isinstance(value, list):
+            return cast(list[Any], value.copy())
+        if isinstance(value, dict):
+            return cast(dict[str, Any], value.copy())
+        return value
+
+    if method == "replace":
+        if isinstance(value, list):
+            return cast(list[Any], value.copy())
+        if isinstance(value, dict):
+            return cast(dict[str, Any], value.copy())
+        return value
+
+    if isinstance(value, list):
+        result: list[Any] = list(cast(list[Any], existing))
+        for item in cast(list[Any], value):
+            if item not in result:
+                result.append(item)
+        return result
+
+    if isinstance(value, dict):
+        result_dict: dict[str, Any] = dict(cast(dict[str, Any], existing))
+        result_dict.update(cast(dict[str, Any], value))
+        return result_dict
+
+    return value
 
 
 def load_template(name: str) -> Template:
@@ -60,21 +111,12 @@ def load_template(name: str) -> Template:
 
 
 def merge_templates(templates: list[Template]) -> Merged:
-    apt_packages: list[str] = []
     root_fragments: list[Fragment] = []
     user_fragments: list[Fragment] = []
-    volumes: dict[str, str] = {}
-    ports: list[str] = []
-    cmd: list[str] | None = None
-    build_args: dict[str, str] = {}
-    contexts: dict[str, str] = {}
+    merged: Merged = {}
 
     for tpl in templates:
         m: Manifest = tpl["manifest"]
-
-        for pkg in m.get("apt_packages", []):
-            if pkg not in apt_packages:
-                apt_packages.append(pkg)
 
         if tpl["root_dockerfile"].strip():
             root_fragments.append((tpl["name"], tpl["root_dockerfile"]))
@@ -82,30 +124,18 @@ def merge_templates(templates: list[Template]) -> Merged:
         if tpl["user_dockerfile"].strip():
             user_fragments.append((tpl["name"], tpl["user_dockerfile"]))
 
-        for vol_name, vol_path in m.get("volumes", {}).items():
-            volumes[vol_name] = vol_path
+        for key, value in m.items():
+            if key in NON_MANIFEST_KEYS:
+                continue
 
-        ports.extend(m.get("ports", []))
+            existing = merged.get(key)
 
-        if "cmd" in m:
-            cmd = m["cmd"]
+            method: str = "replace" if key in LAST_WINS_ARRAY_FIELDS else "merge"
+            merged[key] = merge_field(existing, value, key=key, method=method)
 
-        for arg_name, arg_value in m.get("build_args", {}).items():
-            build_args[arg_name] = str(arg_value)
-
-        for ctx_name, ctx_path in m.get("contexts", {}).items():
-            contexts[ctx_name] = ctx_path
-
-    return {
-        "apt_packages": apt_packages,
-        "root_fragments": root_fragments,
-        "user_fragments": user_fragments,
-        "volumes": volumes,
-        "ports": ports,
-        "cmd": cmd,
-        "build_args": build_args,
-        "contexts": contexts,
-    }
+    merged["root_fragments"] = root_fragments
+    merged["user_fragments"] = user_fragments
+    return merged
 
 
 def generate_dockerfile(merged: Merged) -> str:
@@ -124,7 +154,7 @@ def generate_dockerfile(merged: Merged) -> str:
     lines.append("")
     lines.append("USER root")
 
-    if merged["apt_packages"]:
+    if merged.get("apt_packages"):
         pkgs: str = " ".join(merged["apt_packages"])
         lines.append(f"RUN apt-get -y update && \\")
         lines.append(f"    apt-get -y install {pkgs} && \\")
@@ -149,7 +179,7 @@ def generate_dockerfile(merged: Merged) -> str:
     lines.append("")
     lines.append("WORKDIR $HOME/${PROJECT}")
 
-    if merged["cmd"]:
+    if merged.get("cmd"):
         cmd_json: str = json.dumps(merged["cmd"])
         lines.append("")
         lines.append(f"CMD {cmd_json}")
@@ -168,7 +198,7 @@ def generate_compose(name: str, merged: Merged) -> str:
     lines.append(f"{indent}{indent}{indent}service: base")
 
     vol_lines: list[str] = [f"- root:/home/${{CONTAINER_USER}}/${{PROJECT}}"]
-    for vol_name, vol_path in merged["volumes"].items():
+    for vol_name, vol_path in merged.get("volumes", {}).items():
         vol_lines.append(f"- {vol_name}:/home/${{CONTAINER_USER}}/{vol_path}")
 
     lines.append(f"{indent}{indent}volumes:")
@@ -189,7 +219,7 @@ def generate_compose(name: str, merged: Merged) -> str:
         for arg_name, compose_value in build_args.items():
             lines.append(f"{indent}{indent}{indent}{indent}{arg_name}: {compose_value}")
 
-    if merged["ports"]:
+    if merged.get("ports"):
         lines.append(f"{indent}{indent}ports:")
         for port in merged["ports"]:
             lines.append(f"{indent}{indent}{indent}- {port}")
@@ -197,7 +227,7 @@ def generate_compose(name: str, merged: Merged) -> str:
     lines.append("")
     lines.append("volumes:")
     lines.append(f"{indent}root:")
-    for vol_name in merged["volumes"]:
+    for vol_name in merged.get("volumes", {}):
         lines.append(f"{indent}{vol_name}:")
 
     lines.append("")
