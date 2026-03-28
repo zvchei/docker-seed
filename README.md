@@ -6,9 +6,9 @@ DockerSeed is a lightweight, Docker-based environment for secure development in 
 
 There are two ways to prepare container definitions:
 
-- **Templates + `containers.json` (recommended)** - Add or edit entries in `containers.json`, define reusable pieces under `templates/`, then run `./setup.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml` and appends new names to `services.list`. Use this for composing services from shared building blocks; one place to merge apt packages, volumes, ports, and Dockerfile fragments.
+- **Templates + `containers.json` (recommended)** - Add or edit entries in `containers.json`, define reusable pieces under `templates/`, then run `./setup.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Use this for composing services from shared building blocks; one place to merge apt packages, volumes, ports, and Dockerfile fragments.
 
-- **Legacy** - Create or edit `services/<name>/` yourself (Dockerfile, `docker-compose.yaml`, optional `setup.sh`) and list each service in `services.list`. Use this for one-off or highly custom images that you do not want driven by templates.
+- **Legacy** - Create or edit `services/<name>/` yourself (Dockerfile, `docker-compose.yaml`, optional `setup.sh`) and add an entry to `containers.json` (with `"templates": []`). Use this for one-off or highly custom images that you do not want driven by templates.
 
 You can mix both: some directories under `services/` are hand-maintained while others are regenerated from `containers.json` when you run `./setup.py`. Entries in `containers.json` with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
 
@@ -22,13 +22,13 @@ You can mix both: some directories under `services/` are hand-maintained while o
    ./setup.py
    ```
 
-3. **Bake the stack** - runs optional per-service `setup.sh` scripts, regenerates the root `docker-compose.yaml` from `services.list`, walks through `.env`, then optionally runs `docker-compose build`:
+3. **Bake the stack** - runs optional per-service `setup.sh` scripts, regenerates the root `docker-compose.yaml` from `containers.json`, walks through `.env`, then optionally runs `docker-compose build`:
 
    ```bash
    ./build.sh
    ```
 
-4. **Run a service** (pick a name from `services.list`):
+4. **Run a service** (pick a name from `containers.json`):
 
    ```bash
    docker-compose up <service_name>
@@ -49,7 +49,7 @@ You can mix both: some directories under `services/` are hand-maintained while o
 `setup.py` reads **`containers.json`** and, for each enabled entry, merges the listed **`templates/`** manifests and Dockerfile fragments into `services/<name>/`.
 
 1. Edit **`containers.json`** - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
-2. Run **`./setup.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml`, and appends new names to **`services.list`** when missing.
+2. Run **`./setup.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry.
 3. Run **`./build.sh`** so per-service setup runs, the root compose file is refreshed, and images are built.
 
 ### Template layout

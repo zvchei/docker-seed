@@ -17,7 +17,6 @@ SCRIPT_DIR: Path = Path(__file__).resolve().parent
 TEMPLATES_DIR: Path = SCRIPT_DIR / "templates"
 SERVICES_DIR: Path = SCRIPT_DIR / "services"
 CONTAINERS_FILE: Path = SCRIPT_DIR / "containers.json"
-SERVICES_LIST: Path = SCRIPT_DIR / "services.list"
 
 type Manifest = dict[str, Any]
 type Fragment = tuple[str, str]
@@ -384,22 +383,6 @@ def main() -> None:
         generated.append(name)
 
     print(f"\n\033[32m✓\033[0m  Done. Generated {len(generated)} container(s).")
-
-    existing_services: set[str] = set()
-    if SERVICES_LIST.exists():
-        for line in SERVICES_LIST.read_text().splitlines():
-            stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
-                existing_services.add(stripped)
-
-    with open(SERVICES_LIST, "a") as f:
-        for name in generated:
-            if name in existing_services:
-                print(f"  Service '{name}' already in services.list, skipping.")
-            else:
-                f.write(f"{name}\n")
-                print(f"\033[32m✓\033[0m  Added '{name}' to services.list.")
-
     print(f"\nRun \033[1m./build.sh\033[0m to build the services.")
 
 

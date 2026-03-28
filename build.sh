@@ -4,19 +4,19 @@ set -e  # Exit on any error.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICES_DIR="$SCRIPT_DIR/services"
-SERVICES_LIST="$SCRIPT_DIR/services.list"
+CONTAINERS_FILE="$SCRIPT_DIR/containers.json"
 
 echo "Starting build..."
+
+# Derive the list of enabled services from containers.json
+mapfile -t SERVICE_NAMES < <(jq -r '.[] | select(.enabled != false) | .name' "$CONTAINERS_FILE")
 
 # Run the setup scripts for each service
 
 failed_count=0
 success_count=0
 
-while IFS= read -r service_name || [ -n "$service_name" ]; do
-    # Skip empty lines and comments
-    [[ -z "$service_name" || "$service_name" =~ ^# ]] && continue
-
+for service_name in "${SERVICE_NAMES[@]}"; do
     service_dir="$SERVICES_DIR/$service_name"
 
     if [ -f "$service_dir/setup.sh" ]; then
@@ -42,7 +42,7 @@ while IFS= read -r service_name || [ -n "$service_name" ]; do
             cd "$SCRIPT_DIR"
         fi
     fi
-done < "$SERVICES_LIST"
+done
 
 echo ""
 
@@ -64,13 +64,12 @@ echo -e "  - common/docker-compose.yaml" >> "$DOCKER_COMPOSE_FILE"
 echo ""
 echo -en "\033[34m⚙\033[0m "
 echo "Generating docker-compose.yaml from the list of services:"
-while IFS= read -r service_name || [ -n "$service_name" ]; do
-    [[ -z "$service_name" || "$service_name" =~ ^# ]] && continue
+for service_name in "${SERVICE_NAMES[@]}"; do
     compose_file="services/$service_name/docker-compose.yaml"
     echo -e "  - $compose_file" >> "$DOCKER_COMPOSE_FILE"
     echo -en "\t\033[37m◦\033[0m "
     echo "$service_name"
-done < "$SERVICES_LIST"
+done
 
 echo -en "\033[32m✓\033[0m "
 echo "Done."
