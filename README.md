@@ -4,7 +4,7 @@ DockerSeed is a lightweight, Docker-based environment for secure development in 
 
 ## How services get into the tree
 
-Add or edit entries in `containers.json`, define reusable pieces under `templates/`, then run `./setup.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
+Add or edit entries in `containers.json`, define reusable pieces under `templates/`, then run `./seed.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
 
 ## Quick start
 
@@ -13,7 +13,7 @@ Add or edit entries in `containers.json`, define reusable pieces under `template
 2. **Generate services** (required for anything declared in `containers.json` with `"enabled": true`; safe to run if you only use legacy services and all template-driven entries are disabled):
 
    ```bash
-   ./setup.py
+   ./seed.py
    ```
 
 3. **Bake the stack** - runs optional per-service `setup.sh` scripts, regenerates the root `docker-compose.yaml` from `containers.json`, walks through `.env`, then optionally runs `docker-compose build`:
@@ -38,12 +38,12 @@ Add or edit entries in `containers.json`, define reusable pieces under `template
    google-chrome --new --kiosk http://localhost:8080
    ```
 
-## Generating services from templates (`setup.py`)
+## Generating services from templates (`seed.py`)
 
-`setup.py` reads **`containers.json`** and, for each enabled entry, merges the listed **`templates/`** manifests and Dockerfile fragments into `services/<name>/`.
+`seed.py` reads **`containers.json`** and, for each enabled entry, merges the listed **`templates/`** manifests and Dockerfile fragments into `services/<name>/.`
 
 1. Edit **`containers.json`** - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
-2. Run **`./setup.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry.
+2. Run **`./seed.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry.
 3. Run **`./build.sh`** so per-service setup runs, the root compose file is refreshed, and images are built.
 
 ### Template layout
