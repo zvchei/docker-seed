@@ -1,12 +1,5 @@
 [
     {
-        "name": "node",
-        "enabled": true,
-        "templates": [
-            "node"
-        ]
-    },
-    {
         "name": "cli",
         "enabled": true,
         "templates": []
@@ -21,42 +14,11 @@
         "main": "vscode"
     },
     {
-        "name": "dotnet",
-        "enabled": true,
-        "templates": [
-            "dotnet"
-        ]
-    },
-    {
         "name": "git",
         "enabled": true,
         "templates": [
             "git",
             "ssh_keys"
         ]
-    },
-    {
-        "name": "gui",
-        "enabled": true,
-        "templates": ["gui"],
-        "ports": ["8900:5900"]
-    },
-    {
-        "name": "ollama",
-        "enabled": true,
-        "templates": ["ollama"],
-        "profile": "gpu",
-        "networks": [{"name": "ollama_network", "external": true}]
-    },
-    {
-        "name": "python",
-        "enabled": true,
-        "templates": ["python"],
-        "networks": [{"name": "python_net", "external": true}]
-    },
-    {
-        "name": "jupyter",
-        "enabled": true,
-        "templates": ["jupyter"]
     }
 ]
