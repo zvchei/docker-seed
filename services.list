@@ -12,4 +12,5 @@ cli
 dotnet
 git
 gui
-ollama
+python
+jupyter

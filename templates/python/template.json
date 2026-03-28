@@ -1,0 +1,12 @@
+{
+    "description": "Python development environment with virtualenv",
+    "apt_packages": ["python3-venv", "python3-dev"],
+    "volumes": {
+        "env": "env",
+        "cache": ".cache/pip"
+    },
+    "env_vars": {
+        "PIP_TRUSTED_HOST": "${PIP_TRUSTED_HOST}",
+        "PIP_INDEX_URL": "${PIP_INDEX_URL}"
+    }
+}

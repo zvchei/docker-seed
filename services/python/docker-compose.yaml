@@ -5,22 +5,24 @@ services:
             file: ../common/docker-compose.yaml
             service: base
         volumes:
-            - cache:/home/${CONTAINER_USER}/.cache/pip
-            - env:/home/${CONTAINER_USER}/env
             - root:/home/${CONTAINER_USER}/${PROJECT}
+            - env:/home/${CONTAINER_USER}/env
+            - cache:/home/${CONTAINER_USER}/.cache/pip
         build:
             context: .
             additional_contexts:
                 localhost/base: service:base
-        networks: ["python_net"]
-        env_file: [".env"]
+        environment:
+            PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST}
+            PIP_INDEX_URL: ${PIP_INDEX_URL}
+        networks:
+            - python_net
+
+volumes:
+    root:
+    env:
+    cache:
 
 networks:
     python_net:
-        name: ${NETWORK_NAME}
         external: true
-
-volumes:
-    cache:
-    env:
-    root:

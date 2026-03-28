@@ -5,3 +5,6 @@ include:
   - services/cli/docker-compose.yaml
   - services/dotnet/docker-compose.yaml
   - services/git/docker-compose.yaml
+  - services/gui/docker-compose.yaml
+  - services/python/docker-compose.yaml
+  - services/jupyter/docker-compose.yaml

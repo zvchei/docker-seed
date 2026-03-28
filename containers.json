@@ -47,5 +47,16 @@
         "templates": ["ollama"],
         "profile": "gpu",
         "networks": [{"name": "ollama_network", "external": true}]
+    },
+    {
+        "name": "python",
+        "enabled": true,
+        "templates": ["python"],
+        "networks": [{"name": "python_net", "external": true}]
+    },
+    {
+        "name": "jupyter",
+        "enabled": true,
+        "templates": ["jupyter"]
     }
 ]

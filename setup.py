@@ -24,7 +24,7 @@ type Fragment = tuple[str, str]
 type Merged = dict[str, Any]
 
 # Manifest keys that carry no mergeable data:
-NON_MANIFEST_KEYS: frozenset[str] = frozenset({"description"})
+NON_MANIFEST_KEYS: frozenset[str] = frozenset({"description", "requires"})
 
 # Fields where overwriting is mandatory instead of accumulating or merging:
 LAST_WINS_ARRAY_FIELDS: frozenset[str] = frozenset({"cmd", "entrypoint"})
@@ -108,6 +108,42 @@ def load_template(name: str) -> Template:
         "root_dockerfile": root_dockerfile,
         "user_dockerfile": user_dockerfile,
     }
+
+
+def resolve_templates(names: list[str], _chain: list[str] | None = None) -> tuple[list[str], list[str]]:
+    """Return (resolved_names, auto_included) where auto_included lists templates prepended via requires."""
+    if _chain is None:
+        _chain = []
+
+    resolved: list[str] = []
+    auto_included: list[str] = []
+
+    for name in names:
+        if name in _chain:
+            print(f"Error: circular dependency detected: {' -> '.join(_chain)} -> {name}")
+            sys.exit(1)
+
+        manifest_path = TEMPLATES_DIR / name / "template.json"
+        if not manifest_path.exists():
+            print(f"Error: template '{name}' not found at {TEMPLATES_DIR / name}")
+            sys.exit(1)
+
+        with open(manifest_path) as f:
+            manifest: Manifest = json.load(f)
+
+        requires: list[str] = manifest.get("requires", [])
+        if requires:
+            sub_resolved, sub_auto = resolve_templates(requires, _chain + [name])
+            for req in sub_resolved:
+                if req not in resolved:
+                    resolved.append(req)
+                    if req not in names:
+                        auto_included.append(req)
+
+        if name not in resolved:
+            resolved.append(name)
+
+    return resolved, auto_included
 
 
 def merge_templates(templates: list[Template]) -> Merged:
@@ -232,6 +268,12 @@ def generate_compose(name: str, merged: Merged) -> str:
         for port in merged["ports"]:
             lines.append(f"{indent}{indent}{indent}- {port}")
 
+    env_vars: dict[str, str] = merged.get("env_vars", {})
+    if env_vars:
+        lines.append(f"{indent}{indent}environment:")
+        for var_name, var_value in env_vars.items():
+            lines.append(f"{indent}{indent}{indent}{var_name}: {var_value}")
+
     networks: list[dict[str, Any]] = merged.get("networks", [])
     if networks:
         lines.append(f"{indent}{indent}networks:")
@@ -277,10 +319,12 @@ def main() -> None:
             continue
 
         template_names: list[str] = container["templates"]
+        resolved_names, auto_included = resolve_templates(template_names)
 
-        print(f"\n\033[34m⚙\033[0m  Generating {name} from: {', '.join(template_names)}")
+        log_suffix = f"  \033[2m(auto-included: {', '.join(auto_included)})\033[0m" if auto_included else ""
+        print(f"\n\033[34m⚙\033[0m  Generating {name} from: {', '.join(resolved_names)}{log_suffix}")
 
-        templates: list[Template] = [load_template(t) for t in template_names]
+        templates: list[Template] = [load_template(t) for t in resolved_names]
         merged: Merged = merge_templates(templates)
 
         container_main = container.get("main")
@@ -321,6 +365,9 @@ def main() -> None:
 
         if container.get("networks"):
             merged["networks"] = container["networks"]
+
+        if container.get("env_vars"):
+            merged.setdefault("env_vars", {}).update(container["env_vars"])
 
         service_dir: Path = SERVICES_DIR / name
         if service_dir.exists():

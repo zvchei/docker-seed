@@ -1,0 +1,9 @@
+{
+    "description": "JupyterLab environment (requires python template)",
+    "requires": ["python"],
+    "ports": ["8888:8888"],
+    "volumes": {
+        "jupyter": ".jupyter"
+    },
+    "cmd": ["bash", "-c", "source ../env/bin/activate; jupyter lab --ip=0.0.0.0"]
+}
