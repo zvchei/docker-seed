@@ -11,3 +11,5 @@ node
 cli
 dotnet
 git
+gui
+ollama

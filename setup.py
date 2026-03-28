@@ -27,7 +27,7 @@ type Merged = dict[str, Any]
 NON_MANIFEST_KEYS: frozenset[str] = frozenset({"description"})
 
 # Fields where overwriting is mandatory instead of accumulating or merging:
-LAST_WINS_ARRAY_FIELDS: frozenset[str] = frozenset({"cmd"})
+LAST_WINS_ARRAY_FIELDS: frozenset[str] = frozenset({"cmd", "entrypoint"})
 
 
 class Template(TypedDict):
@@ -179,6 +179,11 @@ def generate_dockerfile(merged: Merged) -> str:
     lines.append("")
     lines.append("WORKDIR $HOME/${PROJECT}")
 
+    if merged.get("entrypoint"):
+        entrypoint_json: str = json.dumps(merged["entrypoint"])
+        lines.append("")
+        lines.append(f"ENTRYPOINT {entrypoint_json}")
+
     if merged.get("cmd"):
         cmd_json: str = json.dumps(merged["cmd"])
         lines.append("")
@@ -195,7 +200,10 @@ def generate_compose(name: str, merged: Merged) -> str:
     lines.append(f"{indent}{indent}hostname: ${{PROJECT}}-{name}")
     lines.append(f"{indent}{indent}extends:")
     lines.append(f"{indent}{indent}{indent}file: ../common/docker-compose.yaml")
-    lines.append(f"{indent}{indent}{indent}service: base")
+    lines.append(f"{indent}{indent}{indent}service: {merged.get('base_service', 'base')}")
+
+    if merged.get("init"):
+        lines.append(f"{indent}{indent}init: true")
 
     vol_lines: list[str] = [f"- root:/home/${{CONTAINER_USER}}/${{PROJECT}}"]
     for vol_name, vol_path in merged.get("volumes", {}).items():
@@ -224,11 +232,25 @@ def generate_compose(name: str, merged: Merged) -> str:
         for port in merged["ports"]:
             lines.append(f"{indent}{indent}{indent}- {port}")
 
+    networks: list[dict[str, Any]] = merged.get("networks", [])
+    if networks:
+        lines.append(f"{indent}{indent}networks:")
+        for net in networks:
+            lines.append(f"{indent}{indent}{indent}- {net['name']}")
+
     lines.append("")
     lines.append("volumes:")
     lines.append(f"{indent}root:")
     for vol_name in merged.get("volumes", {}):
         lines.append(f"{indent}{vol_name}:")
+
+    if networks:
+        lines.append("")
+        lines.append("networks:")
+        for net in networks:
+            lines.append(f"{indent}{net['name']}:")
+            if net.get("external"):
+                lines.append(f"{indent}{indent}external: true")
 
     lines.append("")
     return "\n".join(lines)
@@ -265,6 +287,15 @@ def main() -> None:
         if container_main is not None:
             tpl_manifest = load_template(container_main)["manifest"]
             merged["cmd"] = tpl_manifest.get("cmd")
+            merged["entrypoint"] = tpl_manifest.get("entrypoint")
+
+        container_entrypoint = container.get("entrypoint")
+        if container_entrypoint is not None:
+            if isinstance(container_entrypoint, list):
+                merged["entrypoint"] = container_entrypoint
+            else:
+                print(f"Error: 'entrypoint' must be a command array (list of strings)")
+                sys.exit(1)
 
         container_cmd = container.get("cmd")
         if container_cmd is not None:
@@ -281,6 +312,15 @@ def main() -> None:
             else:
                 print(f"Error: 'ports' must be a list of port mappings (list of strings)")
                 sys.exit(1)
+
+        if container.get("init"):
+            merged["init"] = True
+
+        if container.get("profile"):
+            merged["base_service"] = container["profile"]
+
+        if container.get("networks"):
+            merged["networks"] = container["networks"]
 
         service_dir: Path = SERVICES_DIR / name
         if service_dir.exists():

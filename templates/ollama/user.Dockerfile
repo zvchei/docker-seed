@@ -1,21 +1,3 @@
-FROM localhost/base
-
-ARG USER
-ARG PROJECT
-ENV HOME=/home/${USER}
-
-USER root
-RUN apt-get -y update && \
-    apt-get -y install curl && \
-    apt-get -y clean && rm -rf /var/lib/apt/lists/*
-
-# --- ollama ---
-RUN curl -fsSL https://ollama.com/install.sh | sh
-
-USER ${USER}
-WORKDIR $HOME
-
-# --- ollama ---
 # Environment variables for Ollama version 0.9.3
 #
 # OLLAMA_DEBUG               Show additional debug information (e.g. OLLAMA_DEBUG=1)
@@ -39,9 +21,3 @@ ENV OLLAMA_ORIGINS='*'
 ENV OLLAMA_HOST='0.0.0.0:11434'
 ENV OLLAMA_VULKAN=1
 RUN mkdir -p $HOME/.ollama
-
-WORKDIR $HOME/${PROJECT}
-
-ENTRYPOINT ["ollama"]
-
-CMD ["serve"]

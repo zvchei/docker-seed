@@ -34,5 +34,19 @@
             "git",
             "ssh_keys"
         ]
+    },
+    {
+        "name": "gui",
+        "enabled": true,
+        "templates": ["gui"],
+        "ports": ["8900:5900"],
+        "init": true
+    },
+    {
+        "name": "ollama",
+        "enabled": true,
+        "templates": ["ollama"],
+        "profile": "gpu",
+        "networks": [{"name": "ollama_network", "external": true}]
     }
 ]

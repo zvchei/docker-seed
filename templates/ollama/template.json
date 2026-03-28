@@ -1,0 +1,10 @@
+{
+    "description": "Ollama LLM server",
+    "apt_packages": ["curl"],
+    "ports": ["11434:11434"],
+    "volumes": {
+        "ollama_storage": ".ollama"
+    },
+    "entrypoint": ["ollama"],
+    "cmd": ["serve"]
+}

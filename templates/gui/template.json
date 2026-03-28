@@ -1,0 +1,5 @@
+{
+    "description": "GUI service with xvfb virtual display and x11vnc remote desktop",
+    "ports": ["5900:5900"],
+    "entrypoint": ["xvfb-run", "bash", "-c", "x11vnc -forever & ${ENTRY}"]
+}
