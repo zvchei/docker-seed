@@ -1,0 +1,7 @@
+{
+    "description": "GitHub Copilot CLI",
+    "apt_packages": ["curl"],
+    "volumes": {
+        "copilot": ".copilot"
+    }
+}
