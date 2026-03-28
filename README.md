@@ -4,13 +4,7 @@ DockerSeed is a lightweight, Docker-based environment for secure development in 
 
 ## How services get into the tree
 
-There are two ways to prepare container definitions:
-
-- **Templates + `containers.json` (recommended)** - Add or edit entries in `containers.json`, define reusable pieces under `templates/`, then run `./setup.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Use this for composing services from shared building blocks; one place to merge apt packages, volumes, ports, and Dockerfile fragments.
-
-- **Legacy** - Create or edit `services/<name>/` yourself (Dockerfile, `docker-compose.yaml`, optional `setup.sh`) and add an entry to `containers.json` (with `"templates": []`). Use this for one-off or highly custom images that you do not want driven by templates.
-
-You can mix both: some directories under `services/` are hand-maintained while others are regenerated from `containers.json` when you run `./setup.py`. Entries in `containers.json` with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
+Add or edit entries in `containers.json`, define reusable pieces under `templates/`, then run `./setup.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
 
 ## Quick start
 
