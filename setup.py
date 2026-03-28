@@ -235,7 +235,7 @@ def generate_compose(name: str, merged: Merged) -> str:
     lines.append(f"{indent}{name}:")
     lines.append(f"{indent}{indent}hostname: ${{PROJECT}}-{name}")
     lines.append(f"{indent}{indent}extends:")
-    lines.append(f"{indent}{indent}{indent}file: ../common/docker-compose.yaml")
+    lines.append(f"{indent}{indent}{indent}file: ../../common/docker-compose.yaml")
     lines.append(f"{indent}{indent}{indent}service: {merged.get('base_service', 'base')}")
 
     if merged.get("init"):

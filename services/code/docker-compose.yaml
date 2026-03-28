@@ -2,7 +2,7 @@ services:
     code:
         hostname: ${PROJECT}-code
         extends:
-            file: ../common/docker-compose.yaml
+            file: ../../common/docker-compose.yaml
             service: base
         volumes:
             - root:/home/${CONTAINER_USER}/${PROJECT}

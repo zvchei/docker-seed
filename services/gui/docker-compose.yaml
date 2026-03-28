@@ -2,7 +2,7 @@ services:
     gui:
         hostname: ${PROJECT}-gui
         extends:
-            file: ../common/docker-compose.yaml
+            file: ../../common/docker-compose.yaml
             service: base
         init: true
         volumes:

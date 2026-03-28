@@ -1,5 +1,5 @@
 include:
-  - services/common/docker-compose.yaml
+  - common/docker-compose.yaml
   - services/code/docker-compose.yaml
   - services/node/docker-compose.yaml
   - services/cli/docker-compose.yaml

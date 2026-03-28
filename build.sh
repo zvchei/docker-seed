@@ -59,7 +59,7 @@ fi
 
 DOCKER_COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yaml"
 echo "include:" > "$DOCKER_COMPOSE_FILE"
-echo -e "  - services/common/docker-compose.yaml" >> "$DOCKER_COMPOSE_FILE"
+echo -e "  - common/docker-compose.yaml" >> "$DOCKER_COMPOSE_FILE"
 
 echo ""
 echo -en "\033[34m⚙\033[0m "
