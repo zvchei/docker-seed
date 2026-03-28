@@ -5,7 +5,7 @@ secrets/*
 secrets/ssh/*
 !secrets/ssh/README
 
-services/*/downloads
-./docker-compose.yaml
+services/
+docker-compose.yaml
 
 __pycache__/
