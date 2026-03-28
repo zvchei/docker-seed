@@ -109,13 +109,12 @@ def load_template(name: str) -> Template:
     }
 
 
-def resolve_templates(names: list[str], _chain: list[str] | None = None) -> tuple[list[str], list[str]]:
-    """Return (resolved_names, auto_included) where auto_included lists templates prepended via requires."""
+def resolve_templates(names: list[str], _chain: list[str] | None = None) -> list[str]:
+    """Return template names in dependency-resolved order."""
     if _chain is None:
         _chain = []
 
     resolved: list[str] = []
-    auto_included: list[str] = []
 
     for name in names:
         if name in _chain:
@@ -132,17 +131,15 @@ def resolve_templates(names: list[str], _chain: list[str] | None = None) -> tupl
 
         requires: list[str] = manifest.get("requires", [])
         if requires:
-            sub_resolved, sub_auto = resolve_templates(requires, _chain + [name])
+            sub_resolved = resolve_templates(requires, _chain + [name])
             for req in sub_resolved:
                 if req not in resolved:
                     resolved.append(req)
-                    if req not in names:
-                        auto_included.append(req)
 
         if name not in resolved:
             resolved.append(name)
 
-    return resolved, auto_included
+    return resolved
 
 
 def merge_templates(templates: list[Template]) -> Merged:
@@ -318,10 +315,9 @@ def main() -> None:
             continue
 
         template_names: list[str] = container["templates"]
-        resolved_names, auto_included = resolve_templates(template_names)
+        resolved_names = resolve_templates(template_names)
 
-        log_suffix = f"  \033[2m(auto-included: {', '.join(auto_included)})\033[0m" if auto_included else ""
-        print(f"\n\033[34m⚙\033[0m  Generating {name} from: {', '.join(resolved_names)}{log_suffix}")
+        print(f"\n\033[34m⚙\033[0m  Generating {name} from: {', '.join(resolved_names)}")
 
         templates: list[Template] = [load_template(t) for t in resolved_names]
         merged: Merged = merge_templates(templates)
