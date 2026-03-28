@@ -67,6 +67,7 @@ def merge_templates(templates: list[Template]) -> Merged:
     ports: list[str] = []
     cmd: list[str] | None = None
     build_args: dict[str, str] = {}
+    contexts: dict[str, str] = {}
 
     for tpl in templates:
         m: Manifest = tpl["manifest"]
@@ -92,6 +93,9 @@ def merge_templates(templates: list[Template]) -> Merged:
         for arg_name, arg_value in m.get("build_args", {}).items():
             build_args[arg_name] = str(arg_value)
 
+        for ctx_name, ctx_path in m.get("contexts", {}).items():
+            contexts[ctx_name] = ctx_path
+
     return {
         "apt_packages": apt_packages,
         "root_fragments": root_fragments,
@@ -100,6 +104,7 @@ def merge_templates(templates: list[Template]) -> Merged:
         "ports": ports,
         "cmd": cmd,
         "build_args": build_args,
+        "contexts": contexts,
     }
 
 
@@ -174,6 +179,9 @@ def generate_compose(name: str, merged: Merged) -> str:
     lines.append(f"{indent}{indent}{indent}context: .")
     lines.append(f"{indent}{indent}{indent}additional_contexts:")
     lines.append(f"{indent}{indent}{indent}{indent}localhost/base: service:base")
+
+    for ctx_name, ctx_path in merged.get("contexts", {}).items():
+        lines.append(f"{indent}{indent}{indent}{indent}{ctx_name}: {ctx_path}")
 
     build_args: dict[str, str] = merged.get("build_args", {})
     if build_args:

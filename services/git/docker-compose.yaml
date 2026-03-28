@@ -9,10 +9,11 @@ services:
         build:
             context: .
             additional_contexts:
-                credentials: ../../secrets/git
                 localhost/base: service:base
+                ssh_keys: ../../secrets/ssh
             args:
-                GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
                 GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME}
+                GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL}
+
 volumes:
     root:

@@ -1,9 +1,9 @@
 secrets/*
-!secrets/git
+!secrets/ssh
 !secrets/README
 
-secrets/git/*
-!secrets/git/README
+secrets/ssh/*
+!secrets/ssh/README
 
 services/*/downloads
 ./docker-compose.yaml

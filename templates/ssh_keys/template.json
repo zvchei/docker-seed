@@ -1,0 +1,6 @@
+{
+    "description": "SSH keys",
+    "contexts": {
+        "ssh_keys": "../../secrets/ssh"
+    }
+}

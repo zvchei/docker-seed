@@ -26,5 +26,13 @@
         "templates": [
             "dotnet"
         ]
+    },
+    {
+        "name": "git",
+        "enabled": true,
+        "templates": [
+            "git",
+            "ssh_keys"
+        ]
     }
 ]
