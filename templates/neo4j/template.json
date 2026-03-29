@@ -1,0 +1,18 @@
+{
+    "description": "Neo4J graph database server",
+    "ports": ["7474:7474", "7687:7687"],
+    "volumes": {
+        "neo4j_data": ".neo4j/data",
+        "neo4j_logs": ".neo4j/logs",
+        "neo4j_conf": ".neo4j/conf",
+        "neo4j_plugins": ".neo4j/plugins",
+        "neo4j_import": ".neo4j/import",
+        "neo4j_run": ".neo4j/run",
+        "neo4j_tmp": ".neo4j/tmp"
+    },
+    "env_vars": {
+        "NEO4J_AUTH": "${NEO4J_AUTH}",
+        "JAVA_OPTS": "-Djava.io.tmpdir=/home/${CONTAINER_USER}/.neo4j/tmp"
+    },
+    "cmd": ["neo4j", "console"]
+}

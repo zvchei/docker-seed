@@ -58,5 +58,10 @@
         "name": "jupyter",
         "enabled": true,
         "templates": ["jupyter"]
+    },
+    {
+        "name": "neo4j",
+        "enabled": true,
+        "templates": ["neo4j"]
     }
 ]
