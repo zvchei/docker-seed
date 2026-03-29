@@ -200,8 +200,20 @@ def generate_dockerfile(merged: Merged) -> str:
     lines.append("")
     lines.append("USER ${USER}")
 
-    if merged["user_fragments"]:
+    volumes: dict[str, str] = merged.get("volumes", {})
+    if merged["user_fragments"] or volumes:
         lines.append("WORKDIR $HOME")
+
+    if volumes:
+        lines.append("")
+        paths = [f"$HOME/{path}" for path in volumes.values()]
+        if len(paths) == 1:
+            lines.append(f"RUN mkdir -p {paths[0]}")
+        else:
+            lines.append("RUN mkdir -p \\")
+            for path in paths[:-1]:
+                lines.append(f"    {path} \\")
+            lines.append(f"    {paths[-1]}")
 
     for name, fragment in merged["user_fragments"]:
         lines.append("")

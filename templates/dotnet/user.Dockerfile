@@ -7,7 +7,7 @@ RUN curl -fSL "https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSI
     chmod +x $HOME/dotnet/dotnet
 ENV PATH="${PATH}:$HOME/dotnet"
 
-RUN mkdir -p $HOME/.microsoft/usersecrets $HOME/.local/.IdentityService $HOME/.aspnet/https
+RUN mkdir -p $HOME/.aspnet/https
 
 RUN curl -fsSL https://raw.githubusercontent.com/microsoft/artifacts-credprovider/master/helpers/installcredprovider.sh -o "$HOME/installcredprovider.sh" && \
     chmod +x "$HOME/installcredprovider.sh" && \

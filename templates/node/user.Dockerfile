@@ -6,5 +6,4 @@ RUN curl -sLO https://nodejs.org/dist/${NODE_VERSION}/${NODE_NAME}.tar.xz && \
     rm ${NODE_NAME}.tar.xz
 ENV PATH="${PATH}:$HOME/${NODE_NAME}/bin"
 
-RUN mkdir -p $HOME/.npm $HOME/.node
 ENV NODE_REPL_HISTORY=$HOME/.node/.node_repl_history
