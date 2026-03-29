@@ -1,4 +1,4 @@
-ARG DOTNET_SDK_VERSION=8.0.413
+ARG DOTNET_SDK_VERSION=10.0.201
 
 RUN curl -fSL "https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz" -o dotnet-sdk.tar.gz && \
     mkdir -p $HOME/dotnet && \
