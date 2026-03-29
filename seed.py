@@ -299,6 +299,8 @@ def build_merged_for_container(
             merged["interactive"] = True
         if container.get("networks") is not None:
             merged["networks"] = container["networks"]
+        if container.get("network_mode") is not None:
+            merged["network_mode"] = container["network_mode"]
         if container.get("env_vars"):
             merged.setdefault("env_vars", {}).update(container["env_vars"])
         if container.get("cmd") is not None:
@@ -360,6 +362,9 @@ def build_merged_for_container(
 
     if container.get("networks"):
         merged["networks"] = container["networks"]
+
+    if container.get("network_mode") is not None:
+        merged["network_mode"] = container["network_mode"]
 
     if container.get("env_vars"):
         merged.setdefault("env_vars", {}).update(container["env_vars"])
@@ -449,6 +454,10 @@ def generate_compose(name: str, merged: Merged) -> str:
         lines.append(f"{indent}{indent}environment:")
         for var_name, var_value in env_vars.items():
             lines.append(f"{indent}{indent}{indent}{var_name}: {var_value}")
+
+    network_mode: str | None = merged.get("network_mode")
+    if network_mode:
+        lines.append(f"{indent}{indent}network_mode: {network_mode}")
 
     networks: list[dict[str, Any]] = merged.get("networks", [])
     if networks:
