@@ -455,6 +455,8 @@ def generate_compose(name: str, merged: Merged) -> str:
             if arg_name not in standard_build_args:
                 lines.append(f"{indent}{indent}{indent}{indent}{arg_name}: {compose_value}")
 
+        lines.append(f"{indent}{indent}pull_policy: never")
+
     if merged.get("ports"):
         lines.append(f"{indent}{indent}ports:")
         for port in merged["ports"]:
