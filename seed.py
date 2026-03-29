@@ -301,6 +301,8 @@ def build_merged_for_container(
             merged["networks"] = container["networks"]
         if container.get("network_mode") is not None:
             merged["network_mode"] = container["network_mode"]
+        if container.get("restart") is not None:
+            merged["restart"] = container["restart"]
         if container.get("env_vars"):
             merged.setdefault("env_vars", {}).update(container["env_vars"])
         if container.get("cmd") is not None:
@@ -371,6 +373,9 @@ def build_merged_for_container(
 
     if container.get("network_mode") is not None:
         merged["network_mode"] = container["network_mode"]
+
+    if container.get("restart") is not None:
+        merged["restart"] = container["restart"]
 
     if container.get("env_vars"):
         merged.setdefault("env_vars", {}).update(container["env_vars"])
@@ -464,6 +469,10 @@ def generate_compose(name: str, merged: Merged) -> str:
     network_mode: str | None = merged.get("network_mode")
     if network_mode:
         lines.append(f"{indent}{indent}network_mode: {network_mode}")
+
+    restart: str | None = merged.get("restart")
+    if restart:
+        lines.append(f"{indent}{indent}restart: {restart}")
 
     networks: list[dict[str, Any]] = merged.get("networks", [])
     if networks:
