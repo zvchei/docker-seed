@@ -253,6 +253,9 @@ def generate_compose(name: str, merged: Merged) -> str:
         lines.append(f"{indent}{indent}tty: true")
         lines.append(f"{indent}{indent}stdin_open: true")
 
+    if merged.get("workdir"):
+        lines.append(f"{indent}{indent}working_dir: {merged['workdir']}")
+
     vol_lines: list[str] = [f"- root:/home/${{CONTAINER_USER}}/${{PROJECT}}"]
     for vol_name, vol_path in merged.get("volumes", {}).items():
         vol_lines.append(f"- {vol_name}:/home/${{CONTAINER_USER}}/{vol_path}")
@@ -373,6 +376,9 @@ def main() -> None:
 
         if container.get("interactive"):
             merged["interactive"] = True
+
+        if container.get("workdir"):
+            merged["workdir"] = container["workdir"]
 
         if container.get("profile"):
             merged["base_service"] = container["profile"]
