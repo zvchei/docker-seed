@@ -310,6 +310,12 @@ def build_merged_for_container(
                 print(f"Error: 'cmd' must be a command array (list of strings)")
                 sys.exit(1)
 
+        container_main = container.get("main")
+        if container_main is not None:
+            tpl_manifest = load_template(container_main)["manifest"]
+            merged["cmd"] = tpl_manifest.get("cmd")
+            merged["entrypoint"] = tpl_manifest.get("entrypoint")
+
         return merged
 
     # Regular container: template-based resolution.
