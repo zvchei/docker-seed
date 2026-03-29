@@ -1,0 +1,5 @@
+{
+    "description": "Expose a localhost port on all interfaces using socat",
+    "apt_packages": ["socat"],
+    "cmd": ["/usr/local/bin/ex_port.sh"]
+}

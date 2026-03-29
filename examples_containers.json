@@ -72,5 +72,18 @@
         "templates": [],
         "cmd": ["/bin/bash"],
         "interactive": true
+    },
+    {
+        "name": "some_service_exposed",
+        "enabled": false,
+        "templates": ["ex_port", "some_service"]
+    },
+    {
+        "name": "some_service_ex_port",
+        "enabled": false,
+        "extends": "some_service_exposed",
+        "main": "ex_port",
+        "network_mode": "service:some_service_exposed",
+        "env_vars": { "EXPOSE_PORT": "5000" }
     }
 ]
