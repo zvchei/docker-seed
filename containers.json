@@ -9,9 +9,16 @@
         "enabled": true,
         "templates": [
             "git",
+            "copilot-cli",
             "vscode"
         ],
         "main": "vscode"
+    },
+    {
+        "name": "copilot",
+        "enabled": true,
+        "extends": "code",
+        "cmd": ["copilot"]
     },
     {
         "name": "git",

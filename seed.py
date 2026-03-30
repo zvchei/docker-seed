@@ -7,6 +7,7 @@ Each entry in containers.json may set "enabled": false to skip generating
 that service (defaults to true when omitted).
 """
 
+import copy
 import json
 import shutil
 import sys
@@ -237,14 +238,149 @@ def generate_dockerfile(merged: Merged) -> str:
     return "\n".join(lines)
 
 
+def validate_extends(containers: list[dict[str, Any]]) -> None:
+    """Validate all 'extends' references: targets must exist and no cycles."""
+    names: set[str] = {c["name"] for c in containers}
+
+    def check(name: str, chain: list[str]) -> None:
+        if name in chain:
+            print(f"Error: circular 'extends' detected: {' -> '.join(chain + [name])}")
+            sys.exit(1)
+        container = next((c for c in containers if c["name"] == name), None)
+        if container is None:
+            return
+        parent = container.get("extends")
+        if parent:
+            if parent not in names:
+                print(
+                    f"Error: container '{name}' extends '{parent}', "
+                    f"which does not exist in containers.json."
+                )
+                sys.exit(1)
+            check(parent, chain + [name])
+
+    for container in containers:
+        if container.get("extends"):
+            check(container["name"], [])
+
+
+def build_merged_for_container(
+    container: dict[str, Any],
+    all_containers: list[dict[str, Any]],
+    _chain: list[str] | None = None,
+) -> Merged:
+    """Return the fully-resolved merged dict for a container, handling 'extends' chains."""
+    if _chain is None:
+        _chain = []
+
+    name: str = container["name"]
+    if name in _chain:
+        print(f"Error: circular 'extends' detected: {' -> '.join(_chain + [name])}")
+        sys.exit(1)
+
+    parent_name: str | None = container.get("extends")
+    if parent_name is not None:
+        parent = next((c for c in all_containers if c["name"] == parent_name), None)
+        if parent is None:
+            print(f"Error: container '{name}' extends '{parent_name}', which does not exist.")
+            sys.exit(1)
+
+        parent_merged = build_merged_for_container(parent, all_containers, _chain + [name])
+        merged: Merged = copy.deepcopy(parent_merged)
+        merged["extended_service"] = parent_name
+
+        if container.get("ports") is not None:
+            merged["ports"] = container["ports"]
+        if container.get("workdir"):
+            merged["workdir"] = container["workdir"]
+        if container.get("init"):
+            merged["init"] = True
+        if container.get("interactive"):
+            merged["interactive"] = True
+        if container.get("networks") is not None:
+            merged["networks"] = container["networks"]
+        if container.get("env_vars"):
+            merged.setdefault("env_vars", {}).update(container["env_vars"])
+        if container.get("cmd") is not None:
+            if isinstance(container["cmd"], list):
+                merged["cmd"] = container["cmd"]
+            else:
+                print(f"Error: 'cmd' must be a command array (list of strings)")
+                sys.exit(1)
+
+        return merged
+
+    # Regular container: template-based resolution.
+    template_names: list[str] = container.get("templates", [])
+    resolved_names = resolve_templates(template_names)
+    templates_list: list[Template] = [load_template(t) for t in resolved_names]
+    merged = merge_templates(templates_list)
+
+    container_main = container.get("main")
+    if container_main is not None:
+        tpl_manifest = load_template(container_main)["manifest"]
+        merged["cmd"] = tpl_manifest.get("cmd")
+        merged["entrypoint"] = tpl_manifest.get("entrypoint")
+
+    container_entrypoint = container.get("entrypoint")
+    if container_entrypoint is not None:
+        if isinstance(container_entrypoint, list):
+            merged["entrypoint"] = container_entrypoint
+        else:
+            print(f"Error: 'entrypoint' must be a command array (list of strings)")
+            sys.exit(1)
+
+    container_cmd = container.get("cmd")
+    if container_cmd is not None:
+        if isinstance(container_cmd, list):
+            merged["cmd"] = container_cmd
+        else:
+            print(f"Error: 'cmd' must be a command array (list of strings)")
+            sys.exit(1)
+
+    container_ports = container.get("ports")
+    if container_ports is not None:
+        if isinstance(container_ports, list):
+            merged["ports"] = container_ports
+        else:
+            print(f"Error: 'ports' must be a list of port mappings (list of strings)")
+            sys.exit(1)
+
+    if container.get("init"):
+        merged["init"] = True
+
+    if container.get("interactive"):
+        merged["interactive"] = True
+
+    if container.get("workdir"):
+        merged["workdir"] = container["workdir"]
+
+    if container.get("profile"):
+        merged["base_service"] = container["profile"]
+
+    if container.get("networks"):
+        merged["networks"] = container["networks"]
+
+    if container.get("env_vars"):
+        merged.setdefault("env_vars", {}).update(container["env_vars"])
+
+    return merged
+
+
 def generate_compose(name: str, merged: Merged) -> str:
     indent: str = "    "
     lines: list[str] = ["services:"]
     lines.append(f"{indent}{name}:")
     lines.append(f"{indent}{indent}hostname: ${{PROJECT}}-{name}")
-    lines.append(f"{indent}{indent}extends:")
-    lines.append(f"{indent}{indent}{indent}file: ../../common/docker-compose.yaml")
-    lines.append(f"{indent}{indent}{indent}service: {merged.get('base_service', 'base')}")
+
+    # Security settings inlined in every service (self-contained, no reliance on common/base).
+    lines.append(f'{indent}{indent}cap_drop: ["all"]')
+    lines.append(f"{indent}{indent}security_opt:")
+    lines.append(f"{indent}{indent}{indent}- no-new-privileges")
+    lines.append(f"{indent}{indent}read_only: true")
+    lines.append(f"{indent}{indent}tmpfs:")
+    lines.append(f"{indent}{indent}{indent}- /tmp:noexec,nosuid,nodev,mode=1777")
+    lines.append(f"{indent}{indent}user: ${{CONTAINER_USER_ID}}:${{CONTAINER_USER_ID}}")
 
     if merged.get("init"):
         lines.append(f"{indent}{indent}init: true")
@@ -256,6 +392,15 @@ def generate_compose(name: str, merged: Merged) -> str:
     if merged.get("workdir"):
         lines.append(f"{indent}{indent}working_dir: {merged['workdir']}")
 
+    if merged.get("base_service") == "gpu":
+        lines.append(f"{indent}{indent}deploy:")
+        lines.append(f"{indent}{indent}{indent}resources:")
+        lines.append(f"{indent}{indent}{indent}{indent}reservations:")
+        lines.append(f"{indent}{indent}{indent}{indent}{indent}devices:")
+        lines.append(f"{indent}{indent}{indent}{indent}{indent}{indent}- driver: nvidia")
+        lines.append(f"{indent}{indent}{indent}{indent}{indent}{indent}  capabilities: [gpu]")
+        lines.append(f"{indent}{indent}{indent}{indent}{indent}{indent}  count: all")
+
     vol_lines: list[str] = [f"- root:/home/${{CONTAINER_USER}}/${{PROJECT}}"]
     for vol_name, vol_path in merged.get("volumes", {}).items():
         vol_lines.append(f"- {vol_name}:/home/${{CONTAINER_USER}}/{vol_path}")
@@ -264,19 +409,35 @@ def generate_compose(name: str, merged: Merged) -> str:
     for vl in vol_lines:
         lines.append(f"{indent}{indent}{indent}{vl}")
 
-    lines.append(f"{indent}{indent}build:")
-    lines.append(f"{indent}{indent}{indent}context: .")
-    lines.append(f"{indent}{indent}{indent}additional_contexts:")
-    lines.append(f"{indent}{indent}{indent}{indent}localhost/base: service:base")
+    extended_service: str | None = merged.get("extended_service")
+    if extended_service:
+        lines.append(f"{indent}{indent}image: ${{COMPOSE_PROJECT_NAME}}-{extended_service}")
+        lines.append(f"{indent}{indent}pull_policy: never")
+        if merged.get("cmd"):
+            cmd_json: str = json.dumps(merged["cmd"])
+            lines.append(f"{indent}{indent}command: {cmd_json}")
+    else:
+        lines.append(f"{indent}{indent}build:")
+        lines.append(f"{indent}{indent}{indent}context: .")
+        lines.append(f"{indent}{indent}{indent}additional_contexts:")
+        lines.append(f"{indent}{indent}{indent}{indent}localhost/base: service:base")
 
-    for ctx_name, ctx_path in merged.get("contexts", {}).items():
-        lines.append(f"{indent}{indent}{indent}{indent}{ctx_name}: {ctx_path}")
+        for ctx_name, ctx_path in merged.get("contexts", {}).items():
+            lines.append(f"{indent}{indent}{indent}{indent}{ctx_name}: {ctx_path}")
 
-    build_args: dict[str, str] = merged.get("build_args", {})
-    if build_args:
+        standard_build_args: frozenset[str] = frozenset(
+            {"USER", "USER_ID", "PROJECT", "GIT_AUTHOR_EMAIL", "GIT_AUTHOR_NAME"}
+        )
         lines.append(f"{indent}{indent}{indent}args:")
-        for arg_name, compose_value in build_args.items():
-            lines.append(f"{indent}{indent}{indent}{indent}{arg_name}: {compose_value}")
+        lines.append(f"{indent}{indent}{indent}{indent}USER: ${{CONTAINER_USER}}")
+        lines.append(f"{indent}{indent}{indent}{indent}USER_ID: ${{CONTAINER_USER_ID}}")
+        lines.append(f"{indent}{indent}{indent}{indent}PROJECT: ${{PROJECT}}")
+        lines.append(f"{indent}{indent}{indent}{indent}GIT_AUTHOR_EMAIL: ${{GIT_AUTHOR_EMAIL}}")
+        lines.append(f"{indent}{indent}{indent}{indent}GIT_AUTHOR_NAME: ${{GIT_AUTHOR_NAME}}")
+
+        for arg_name, compose_value in merged.get("build_args", {}).items():
+            if arg_name not in standard_build_args:
+                lines.append(f"{indent}{indent}{indent}{indent}{arg_name}: {compose_value}")
 
     if merged.get("ports"):
         lines.append(f"{indent}{indent}ports:")
@@ -325,6 +486,8 @@ def main() -> None:
         print("No containers defined in containers.json.")
         return
 
+    validate_extends(containers)
+
     generated: list[str] = []
 
     for container in containers:
@@ -333,69 +496,25 @@ def main() -> None:
             print(f"\n\033[33m⊘\033[0m  Skipping {name} (enabled: false)")
             continue
 
-        template_names: list[str] = container["templates"]
-        resolved_names = resolve_templates(template_names)
+        is_extends: bool = bool(container.get("extends"))
 
-        print(f"\n\033[34m⚙\033[0m  Generating {name} from: {', '.join(resolved_names)}")
+        if is_extends:
+            print(f"\n\033[34m⚙\033[0m  Generating {name} (extends: {container['extends']})")
+        else:
+            resolved_names = resolve_templates(container.get("templates", []))
+            label = ", ".join(resolved_names) if resolved_names else "(no templates)"
+            print(f"\n\033[34m⚙\033[0m  Generating {name} from: {label}")
 
-        templates: list[Template] = [load_template(t) for t in resolved_names]
-        merged: Merged = merge_templates(templates)
-
-        container_main = container.get("main")
-        if container_main is not None:
-            tpl_manifest = load_template(container_main)["manifest"]
-            merged["cmd"] = tpl_manifest.get("cmd")
-            merged["entrypoint"] = tpl_manifest.get("entrypoint")
-
-        container_entrypoint = container.get("entrypoint")
-        if container_entrypoint is not None:
-            if isinstance(container_entrypoint, list):
-                merged["entrypoint"] = container_entrypoint
-            else:
-                print(f"Error: 'entrypoint' must be a command array (list of strings)")
-                sys.exit(1)
-
-        container_cmd = container.get("cmd")
-        if container_cmd is not None:
-            if isinstance(container_cmd, list):
-                merged["cmd"] = container_cmd
-            else:
-                print(f"Error: 'cmd' must be a command array (list of strings)")
-                sys.exit(1)
-
-        container_ports = container.get("ports")
-        if container_ports is not None:
-            if isinstance(container_ports, list):
-                merged["ports"] = container_ports
-            else:
-                print(f"Error: 'ports' must be a list of port mappings (list of strings)")
-                sys.exit(1)
-
-        if container.get("init"):
-            merged["init"] = True
-
-        if container.get("interactive"):
-            merged["interactive"] = True
-
-        if container.get("workdir"):
-            merged["workdir"] = container["workdir"]
-
-        if container.get("profile"):
-            merged["base_service"] = container["profile"]
-
-        if container.get("networks"):
-            merged["networks"] = container["networks"]
-
-        if container.get("env_vars"):
-            merged.setdefault("env_vars", {}).update(container["env_vars"])
+        merged: Merged = build_merged_for_container(container, containers)
 
         service_dir: Path = SERVICES_DIR / name
         if service_dir.exists():
             shutil.rmtree(service_dir)
         service_dir.mkdir(parents=True)
 
-        dockerfile_content: str = generate_dockerfile(merged)
-        (service_dir / "Dockerfile").write_text(dockerfile_content)
+        if not is_extends:
+            dockerfile_content: str = generate_dockerfile(merged)
+            (service_dir / "Dockerfile").write_text(dockerfile_content)
 
         compose_content: str = generate_compose(name, merged)
         (service_dir / "docker-compose.yaml").write_text(compose_content)

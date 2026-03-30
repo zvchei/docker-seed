@@ -16,9 +16,16 @@
         "enabled": true,
         "templates": [
             "git",
+            "copilot-cli",
             "vscode"
         ],
         "main": "vscode"
+    },
+    {
+        "name": "copilot",
+        "enabled": true,
+        "extends": "code",
+        "cmd": ["copilot"]
     },
     {
         "name": "dotnet",
@@ -60,8 +67,10 @@
         "templates": ["jupyter"]
     },
     {
-        "name": "neo4j",
+        "name": "shell",
         "enabled": true,
-        "templates": ["neo4j"]
+        "templates": [],
+        "cmd": ["/bin/bash"],
+        "interactive": true
     }
 ]
