@@ -1,6 +1,12 @@
 {
     "description": "Visual Studio Code",
-    "apt_packages": ["curl", "gpg", "git"],
+    "apt_packages": ["gpg", "git"],
+    "assets": [
+        {
+            "url": "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64",
+            "filename": "vscode.deb"
+        }
+    ],
     "volumes": {
         "vscode": ".vscode",
         "vscode-server": ".vscode-server",

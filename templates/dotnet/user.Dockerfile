@@ -1,9 +1,9 @@
 ARG DOTNET_SDK_VERSION=10.0.201
 
-RUN curl -fSL "https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz" -o dotnet-sdk.tar.gz && \
-    mkdir -p $HOME/dotnet && \
-    tar zxf dotnet-sdk.tar.gz -C $HOME/dotnet && \
-    rm dotnet-sdk.tar.gz && \
+COPY --from=assets dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz ./
+RUN mkdir -p $HOME/dotnet && \
+    tar zxf dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz -C $HOME/dotnet && \
+    rm dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz && \
     chmod +x $HOME/dotnet/dotnet
 ENV PATH="${PATH}:$HOME/dotnet"
 

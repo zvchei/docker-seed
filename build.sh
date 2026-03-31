@@ -91,7 +91,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     if [[ -z "$line" || "$line" =~ ^# ]]; then
         continue
     fi
-    
+
     var_name="${line%%=*}"
     current_value="${line#*=}"
     env_vars["$var_name"]="$current_value"
@@ -102,11 +102,11 @@ done < "$ENV_FILE"
 while true; do
     for var_name in "${env_order[@]}"; do
         current_value="${env_vars[$var_name]}"
-        
+
         # Prompt user for new value
         echo -en "\033[33m?\033[0m "
         read -p "Enter value for $var_name [$current_value]: " new_value
-        
+
         # Update the dictionary with new value if provided
         if [ -n "$new_value" ]; then
             env_vars["$var_name"]="$new_value"
@@ -116,7 +116,7 @@ while true; do
     echo ""
     echo "Current configuration:"
     echo ""
-    
+
     # Show the updated configuration
     for var_name in "${env_order[@]}"; do
         echo -en "\033[37m◦\033[0m "
@@ -126,7 +126,7 @@ while true; do
     echo ""
     while true; do
         read -p "Is this correct? [y/n]: " confirm
-        
+
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
             break 2  # Break out of both loops
         elif [[ "$confirm" =~ ^[Nn]$ ]]; then

@@ -1,6 +1,12 @@
 {
     "description": "GitHub Copilot CLI",
     "apt_packages": ["curl"],
+    "assets": [
+        {
+            "url": "https://gh.io/copilot-install",
+            "filename": "copilot-install.sh"
+        }
+    ],
     "volumes": {
         "copilot": ".copilot"
     }

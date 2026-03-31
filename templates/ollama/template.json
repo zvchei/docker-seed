@@ -1,6 +1,12 @@
 {
     "description": "Ollama LLM server",
     "apt_packages": ["curl", "zstd"],
+    "assets": [
+        {
+            "url": "https://ollama.com/install.sh",
+            "filename": "ollama-install.sh"
+        }
+    ],
     "ports": ["11434:11434"],
     "volumes": {
         "ollama_storage": ".ollama"

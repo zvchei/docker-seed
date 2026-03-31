@@ -1,6 +1,12 @@
 {
     "description": "Cursor CLI",
     "apt_packages": ["curl"],
+    "assets": [
+        {
+            "url": "https://cursor.com/install",
+            "filename": "cursor-install.sh"
+        }
+    ],
     "volumes": {
         "cursor": ".cursor"
     },

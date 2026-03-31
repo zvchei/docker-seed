@@ -18,6 +18,7 @@ SCRIPT_DIR: Path = Path(__file__).resolve().parent
 TEMPLATES_DIR: Path = SCRIPT_DIR / "templates"
 SERVICES_DIR: Path = SCRIPT_DIR / "services"
 CONTAINERS_FILE: Path = SCRIPT_DIR / "containers.json"
+ASSETS_FILE: Path = SCRIPT_DIR / "assets.json"
 
 type Manifest = dict[str, Any]
 type Fragment = tuple[str, str]
@@ -438,6 +439,9 @@ def generate_compose(name: str, merged: Merged) -> str:
         lines.append(f"{indent}{indent}{indent}additional_contexts:")
         lines.append(f"{indent}{indent}{indent}{indent}localhost/base: service:base")
 
+        if merged.get("assets"):
+            lines.append(f"{indent}{indent}{indent}{indent}assets: ../../assets")
+
         for ctx_name, ctx_path in merged.get("contexts", {}).items():
             lines.append(f"{indent}{indent}{indent}{indent}{ctx_name}: {ctx_path}")
 
@@ -515,6 +519,7 @@ def main() -> None:
     validate_extends(containers)
 
     generated: list[str] = []
+    all_assets: list[dict[str, str]] = []
 
     for container in containers:
         name: str = container["name"]
@@ -545,11 +550,29 @@ def main() -> None:
         compose_content: str = generate_compose(name, merged)
         (service_dir / "docker-compose.yaml").write_text(compose_content)
 
+        for asset in merged.get("assets", []):
+            if asset not in all_assets:
+                all_assets.append(asset)
+
         print(f"\033[32m✓\033[0m  Generated services/{name}/")
         generated.append(name)
 
-    print(f"\n\033[32m✓\033[0m  Done. Generated {len(generated)} container(s).")
-    print(f"\nRun \033[1m./build.sh\033[0m to build the services.")
+    print(f"\n\033[32m✓\033[0m  Done. Generated {len(generated)} container(s).\n")
+
+    if all_assets:
+        with open(ASSETS_FILE, "w") as f:
+            json.dump(all_assets, f, indent=2)
+        print(f"\033[32m✓\033[0m  Generated assets.json with {len(all_assets)} asset(s).")
+
+        for asset in all_assets:
+            print(f"  \033[34m⬇\033[0m  {asset['filename']}")
+            print(f"     ↳ {asset['url']}")
+
+        print(f"\nRun \033[1m./grow.py\033[0m to download assets before building.")
+    elif ASSETS_FILE.exists():
+        ASSETS_FILE.unlink()
+
+    print(f"Run \033[1m./build.sh\033[0m to build the services.")
 
 
 if __name__ == "__main__":

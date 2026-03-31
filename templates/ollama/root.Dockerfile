@@ -1,1 +1,2 @@
-RUN curl -fsSL https://ollama.com/install.sh | sh
+COPY --from=assets ollama-install.sh /tmp/
+RUN bash /tmp/ollama-install.sh

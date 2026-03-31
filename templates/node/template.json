@@ -1,6 +1,12 @@
 {
     "description": "Node.js v22",
-    "apt_packages": ["curl", "xz-utils"],
+    "apt_packages": ["xz-utils"],
+    "assets": [
+        {
+            "url": "https://nodejs.org/dist/v22.17.0/node-v22.17.0-linux-x64.tar.xz",
+            "filename": "node-v22.17.0-linux-x64.tar.xz"
+        }
+    ],
     "volumes": {
         "npm": ".npm",
         "node": ".node"

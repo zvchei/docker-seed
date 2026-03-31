@@ -8,4 +8,7 @@ secrets/ssh/*
 services/
 docker-compose.yaml
 
+assets/
+assets.json
+
 __pycache__/
