@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 grow.py — Fetches all assets listed in assets.json into the assets/ directory.
-Run this after seed.py and before build.sh / docker-compose build.
+Run this after seed.py and before harvest.sh / docker-compose build.
 Files already present in assets/ are skipped.
 """
 
