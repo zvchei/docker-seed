@@ -388,7 +388,8 @@ def generate_compose(name: str, merged: Merged) -> str:
     indent: str = "    "
     lines: list[str] = ["services:"]
     lines.append(f"{indent}{name}:")
-    lines.append(f"{indent}{indent}hostname: ${{PROJECT}}-{name}")
+    if not merged.get("network_mode"):
+        lines.append(f"{indent}{indent}hostname: ${{PROJECT}}-{name}")
 
     # Security settings inlined in every service (self-contained, no reliance on common/base).
     lines.append(f'{indent}{indent}cap_drop: ["all"]')
