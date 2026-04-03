@@ -5,4 +5,6 @@ RUN git config --global user.name "$GIT_AUTHOR_NAME" && \
     git config --global alias.ci commit && \
     git config --global alias.st status && \
     git config --global alias.ll "log --oneline -45" && \
-    git config --global init.defaultBranch main
+    git config --global init.defaultBranch main && \
+    echo 'eval $(ssh-agent) > /dev/null' >> "$HOME/.bashrc" && \
+    echo 'grep -rl "PRIVATE" ~/.ssh/ 2>/dev/null | xargs -r ssh-add 2>/dev/null' >> "$HOME/.bashrc"
