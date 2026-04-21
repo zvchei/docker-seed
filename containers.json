@@ -1,10 +1,5 @@
 [
     {
-        "name": "cli",
-        "enabled": true,
-        "templates": []
-    },
-    {
         "name": "code",
         "enabled": true,
         "templates": [
