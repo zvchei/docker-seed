@@ -1,5 +1,6 @@
 {
     "description": "Ollama LLM server",
+    "hostname": "ollama",
     "apt_packages": ["curl", "zstd"],
     "assets": [
         {
