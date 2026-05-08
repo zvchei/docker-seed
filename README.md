@@ -1,6 +1,6 @@
 # DockerSeed
 
-DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `./harvest.sh`.
+DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `./harvest.py`.
 
 ## How services get into the tree
 
@@ -25,7 +25,7 @@ Add or edit entries in `containers.json`, define reusable pieces under `template
 4. **Bake the stack** (regenerates root `docker-compose.yaml`, walks through `.env`, and can run `docker-compose build`):
 
    ```bash
-   ./harvest.sh
+   ./harvest.py
    ```
 
 5. **Run a service** (pick a name from `containers.json`):
@@ -53,7 +53,7 @@ Add or edit entries in `containers.json`, define reusable pieces under `template
 1. Edit **`containers.json`** - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
 2. Run **`./seed.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry.
 3. **(Optional)** Run **`./grow.py`** - download asset files listed in `assets.json` into the `assets/` directory.
-4. Run **`./harvest.sh`** - runs optional per-service `setup.sh` scripts (if present), regenerates the root `docker-compose.yaml`, walks through `.env`, and optionally builds images.
+4. Run **`./harvest.py`** - runs optional per-service `setup.sh` scripts (if present), regenerates the root `docker-compose.yaml`, walks through `.env`, and optionally builds images.
 
 ### Template layout
 
@@ -166,7 +166,7 @@ Use **`grow.py`** to download asset files listed in `assets.json` into the `asse
 ./grow.py --help
 ```
 
-Use **`harvest.sh`** to orchestrate setup, compose generation, environment prompts, and optional image builds.
+Use **`harvest.py`** to orchestrate setup, compose generation, environment prompts, and optional image builds.
 
 ## License
 

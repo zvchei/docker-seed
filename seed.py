@@ -574,7 +574,7 @@ def main() -> None:
     elif ASSETS_FILE.exists():
         ASSETS_FILE.unlink()
 
-    print(f"Run \033[1m./harvest.sh\033[0m to build the services.")
+    print(f"Run \033[1m./harvest.py\033[0m to build the services.")
 
 
 if __name__ == "__main__":
