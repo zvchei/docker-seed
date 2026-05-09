@@ -1,0 +1,14 @@
+{
+    "description": "Rust development environment via rustup",
+    "apt_packages": ["curl", "build-essential"],
+    "assets": [
+        {
+            "url": "https://sh.rustup.rs",
+            "filename": "rustup-init.sh"
+        }
+    ],
+    "volumes": {
+        "cargo_registry": ".cargo/registry",
+        "cargo_git": ".cargo/git"
+    }
+}
