@@ -381,6 +381,9 @@ def build_merged_for_container(
     if container.get("env_vars"):
         merged.setdefault("env_vars", {}).update(container["env_vars"])
 
+    if container.get("build_args"):
+        merged.setdefault("build_args", {}).update(container["build_args"])
+
     return merged
 
 

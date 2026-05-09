@@ -1,8 +1,9 @@
 {
     "description": "Git CLI",
-    "apt_packages": ["git"],
+    "apt_packages": ["git", "openssh-client"],
     "build_args": {
         "GIT_AUTHOR_NAME": "${GIT_AUTHOR_NAME}",
-        "GIT_AUTHOR_EMAIL": "${GIT_AUTHOR_EMAIL}"
+        "GIT_AUTHOR_EMAIL": "${GIT_AUTHOR_EMAIL}",
+        "SSH_KNOWN_HOSTS": "${SSH_KNOWN_HOSTS}"
     }
 }

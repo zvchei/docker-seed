@@ -8,3 +8,9 @@ RUN git config --global user.name "$GIT_AUTHOR_NAME" && \
     git config --global init.defaultBranch main && \
     echo 'eval $(ssh-agent) > /dev/null' >> "$HOME/.bashrc" && \
     echo 'grep -rl "PRIVATE" ~/.ssh/ 2>/dev/null | xargs -r ssh-add 2>/dev/null' >> "$HOME/.bashrc"
+
+RUN mkdir -p --mode=0700 $HOME/.ssh && \
+    if [ -n "$SSH_KNOWN_HOSTS" ]; then \
+        ssh-keyscan $SSH_KNOWN_HOSTS >> $HOME/.ssh/known_hosts && \
+        chmod 600 $HOME/.ssh/known_hosts; \
+    fi
