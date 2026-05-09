@@ -105,3 +105,11 @@ tmpfs: [/tmp:noexec,nosuid,nodev,mode=1777]
 ## Python code style
 
 `seed.py` and `grow.py` use Python 3.12+ features (`type` aliases, `|` unions). Type annotations are used throughout. The `TypedDict` `Template` and `type` aliases (`Manifest`, `Fragment`, `Merged`) are defined at the top of `seed.py`.
+
+## Commit style
+
+Use a single short imperative sentence as the subject line — no conventional-commit prefixes (`fix:`, `feat:`, etc.). Close issues inline when applicable: `(closes #N)`. Example:
+
+```
+Remove setup.sh references, superseded by assets system (closes #14)
+```
