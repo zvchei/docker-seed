@@ -53,7 +53,7 @@ Add or edit entries in `containers.json`, define reusable pieces under `template
 1. Edit **`containers.json`** - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
 2. Run **`./seed.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry.
 3. **(Optional)** Run **`./grow.py`** - download asset files listed in `assets.json` into the `assets/` directory.
-4. Run **`./harvest.py`** - runs optional per-service `setup.sh` scripts (if present), regenerates the root `docker-compose.yaml`, walks through `.env`, and optionally builds images.
+4. Run **`./harvest.py`** - regenerates the root `docker-compose.yaml`, walks through `.env`, and optionally builds images.
 
 ### Template layout
 

@@ -9,8 +9,8 @@ DockerSeed is a **code-generation tool**, not a service itself. It generates Doc
 ```
 ./seed.py          # generates services/<name>/Dockerfile + docker-compose.yaml
 ./grow.py          # (optional) downloads assets listed in assets.json → assets/
-./harvest.py       # runs per-service setup.sh scripts, regenerates root docker-compose.yaml,
-                   # prompts for .env values, optionally runs docker-compose build
+./harvest.py       # regenerates root docker-compose.yaml, prompts for .env values,
+                   # optionally runs docker-compose build
 ```
 
 ## Generated files — never edit manually

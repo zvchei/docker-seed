@@ -4,7 +4,7 @@ harvest.py — Orchestrates the DockerSeed stack after seed.py has run.
 
 Steps:
   1. Read enabled services from containers.json
-  2. Generate the root docker-compose.yaml (include stanza)
+  2. Regenerate the root docker-compose.yaml (include stanza)
   3. Interactively review and update .env variables
   4. Optionally run `docker-compose build`
 """
