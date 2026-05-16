@@ -43,6 +43,13 @@
         ]
     },
     {
+        "name": "gitui",
+        "enabled": true,
+        "templates": [
+            "gitui"
+        ]
+    },
+    {
         "name": "gui",
         "enabled": true,
         "templates": ["gui"],

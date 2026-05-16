@@ -1,0 +1,14 @@
+{
+    "description": "gitui — terminal UI for git",
+    "requires": ["git"],
+    "assets": [
+        {
+            "url": "https://github.com/gitui-org/gitui/releases/download/v0.28.1/gitui-linux-x86_64.tar.gz",
+            "filename": "gitui-linux-x86_64.tar.gz"
+        }
+    ],
+    "volumes": {
+        "gitui_config": ".config/gitui"
+    },
+    "cmd": ["gitui"]
+}
