@@ -1,0 +1,14 @@
+{
+    "description": "Fresh — terminal text editor and IDE",
+    "requires": ["git"],
+    "assets": [
+        {
+            "url": "https://github.com/sinelaw/fresh/releases/download/v0.3.6/fresh-editor-x86_64-unknown-linux-musl.tar.gz",
+            "filename": "fresh-editor-x86_64-unknown-linux-musl.tar.gz"
+        }
+    ],
+    "volumes": {
+        "fresh_config": ".config/fresh-editor"
+    },
+    "cmd": ["fresh"]
+}

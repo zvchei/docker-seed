@@ -43,6 +43,13 @@
         ]
     },
     {
+        "name": "fresh",
+        "enabled": true,
+        "templates": [
+            "fresh"
+        ]
+    },
+    {
         "name": "gitui",
         "enabled": true,
         "templates": [
