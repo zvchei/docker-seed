@@ -9,7 +9,7 @@
     ],
     "volumes": {
         "cursor": ".cursor",
-        "xdg_config": ".config"
+        "cursor_config": ".config/cursor"
     },
     "cmd": ["cursor-agent"]
 }
