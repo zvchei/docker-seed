@@ -56,7 +56,7 @@ Templates are composable and can depend on each other via the `requires` propert
 | `requires` | list[string] | Other templates this template depends on. They are resolved and prepended automatically before merging. |
 | `apt_packages` | list[string] | Debian packages installed via `apt-get` in the root Dockerfile stage. Deduplicated union across templates. |
 | `assets` | list[{url, filename}] | Files to download with `grow.py`. Each entry has a `url` and a `filename`; the file is placed in `assets/` and copied into the image at build time. |
-| `volumes` | dict[name → host_path] | Named volumes mounted into the container. `host_path` is relative to `$HOME` inside the container. Directories are `mkdir -p`'d at build time. Deduplicated union across templates. |
+| `volumes` | dict[name → host_path \| {path, container_specific}] | Named volumes mounted into the container. Use string `host_path` for shared volume names or object form with `container_specific: true` to prefix volume names with `<container>_` for private storage. Paths are relative to `$HOME`; directories are `mkdir -p`'d at build time. Deduplicated union across templates. |
 | `env_vars` | dict[name → value] | Environment variables set at container runtime (`environment:` in compose). Merged; later templates overwrite earlier ones. |
 | `build_args` | dict[name → value] | Docker build arguments declared as `ARG` and passed via `args:` in compose. Merged; later templates overwrite earlier ones. |
 | `ports` | list[string] | Port mappings in `"host:container"` format. Deduplicated union across templates. |
