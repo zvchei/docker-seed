@@ -76,8 +76,8 @@ All fields are optional.
   "description": "Human-readable description",
   "apt_packages": ["curl", "git"],
   "volumes": {
-    "volume_name": "mount/path/relative/to/home",
-    "private_state": {
+    "shared_volume_name": "mount/path/relative/to/home",
+    "container_volume_name": {
       "path": ".local",
       "container_specific": true
     }
