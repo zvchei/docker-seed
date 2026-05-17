@@ -88,6 +88,12 @@
         "interactive": true
     },
     {
+        "name": "chrome",
+        "enabled": true,
+        "templates": ["chrome"],
+        "cmd": ["google-chrome", "--version"]
+    },
+    {
         "name": "some_service_exposed",
         "enabled": false,
         "templates": ["ex_port", "some_service"]

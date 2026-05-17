@@ -1,0 +1,17 @@
+{
+    "description": "Google Chrome stable (for headless browser automation via Puppeteer / Playwright)",
+    "assets": [
+        {
+            "url": "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb",
+            "filename": "google-chrome-stable_current_amd64.deb"
+        }
+    ],
+    "volumes": {
+        "chrome_config": ".config/google-chrome",
+        "chrome_cache": ".cache/google-chrome",
+        "local": {
+            "path": ".local",
+            "container_specific": true
+        }
+    }
+}
