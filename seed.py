@@ -38,6 +38,53 @@ class Template(TypedDict):
     user_dockerfile: str
 
 
+def parse_volume_declaration(vol_name: str, declaration: Any) -> tuple[str, bool]:
+    """Return (path, container_specific) for a template volume declaration."""
+    if isinstance(declaration, str):
+        return declaration, False
+
+    if isinstance(declaration, dict):
+        path: Any = declaration.get("path")
+        if not isinstance(path, str) or not path:
+            print(
+                f"Error: volume '{vol_name}' must define a non-empty string 'path' "
+                f"when using object form."
+            )
+            sys.exit(1)
+
+        container_specific: Any = declaration.get("container_specific", False)
+        if not isinstance(container_specific, bool):
+            print(
+                f"Error: volume '{vol_name}' field 'container_specific' must be boolean."
+            )
+            sys.exit(1)
+
+        return path, container_specific
+
+    print(
+        f"Error: volume '{vol_name}' must be a string path or object "
+        f"{{'path': <str>, 'container_specific': <bool>}}."
+    )
+    sys.exit(1)
+
+
+def resolve_container_volumes(name: str, merged: Merged) -> dict[str, str]:
+    """Resolve volume declarations into final compose volume names and mount paths."""
+    resolved: dict[str, str] = {}
+    volumes: dict[str, Any] = merged.get("volumes", {})
+    for vol_name, declaration in volumes.items():
+        vol_path, container_specific = parse_volume_declaration(vol_name, declaration)
+        resolved_name: str = f"{name}_{vol_name}" if container_specific else vol_name
+        if resolved_name in resolved:
+            print(
+                f"Error: volume name collision for container '{name}': "
+                f"'{resolved_name}' is declared more than once."
+            )
+            sys.exit(1)
+        resolved[resolved_name] = vol_path
+    return resolved
+
+
 def merge_field(existing: Any, value: Any, key: str = "", method: str = "merge") -> Any:
     if method not in {"merge", "replace"}:
         print(f"Error: unknown merge method '{method}'")
@@ -202,20 +249,24 @@ def generate_dockerfile(merged: Merged) -> str:
     lines.append("")
     lines.append("USER ${USER}")
 
-    volumes: dict[str, str] = merged.get("volumes", {})
+    volumes: dict[str, Any] = merged.get("volumes", {})
+    volume_paths: list[str] = []
+    for vol_name, declaration in volumes.items():
+        vol_path, _ = parse_volume_declaration(vol_name, declaration)
+        volume_paths.append(f"$HOME/{vol_path}")
+
     if merged["user_fragments"] or volumes:
         lines.append("WORKDIR $HOME")
 
-    if volumes:
+    if volume_paths:
         lines.append("")
-        paths = [f"$HOME/{path}" for path in volumes.values()]
-        if len(paths) == 1:
-            lines.append(f"RUN mkdir -p {paths[0]}")
+        if len(volume_paths) == 1:
+            lines.append(f"RUN mkdir -p {volume_paths[0]}")
         else:
             lines.append("RUN mkdir -p \\")
-            for path in paths[:-1]:
+            for path in volume_paths[:-1]:
                 lines.append(f"    {path} \\")
-            lines.append(f"    {paths[-1]}")
+            lines.append(f"    {volume_paths[-1]}")
 
     for name, fragment in merged["user_fragments"]:
         lines.append("")
@@ -423,8 +474,9 @@ def generate_compose(name: str, merged: Merged) -> str:
         lines.append(f"{indent}{indent}{indent}{indent}{indent}{indent}  capabilities: [gpu]")
         lines.append(f"{indent}{indent}{indent}{indent}{indent}{indent}  count: all")
 
+    resolved_volumes: dict[str, str] = resolve_container_volumes(name, merged)
     vol_lines: list[str] = [f"- root:/home/${{CONTAINER_USER}}/${{PROJECT}}"]
-    for vol_name, vol_path in merged.get("volumes", {}).items():
+    for vol_name, vol_path in resolved_volumes.items():
         vol_lines.append(f"- {vol_name}:/home/${{CONTAINER_USER}}/{vol_path}")
 
     lines.append(f"{indent}{indent}volumes:")
@@ -494,7 +546,7 @@ def generate_compose(name: str, merged: Merged) -> str:
     lines.append("")
     lines.append("volumes:")
     lines.append(f"{indent}root:")
-    for vol_name in merged.get("volumes", {}):
+    for vol_name in resolved_volumes:
         lines.append(f"{indent}{vol_name}:")
 
     if networks:

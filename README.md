@@ -76,7 +76,11 @@ All fields are optional.
   "description": "Human-readable description",
   "apt_packages": ["curl", "git"],
   "volumes": {
-    "volume_name": "mount/path/relative/to/home"
+    "shared_volume_name": "mount/path/relative/to/home",
+    "container_volume_name": {
+      "path": ".local",
+      "container_specific": true
+    }
   },
   "ports": ["8080:8080"],
   "cmd": ["my-tool", "--serve"]
@@ -87,7 +91,7 @@ All fields are optional.
 |-------|------|-------------|
 | `description` | `string` | What this template provides. |
 | `apt_packages` | `string[]` | Packages installed with `apt-get` as root. |
-| `volumes` | `{name: path}` | Named volumes, paths relative to `$HOME`. |
+| `volumes` | `{name: path \| {path, container_specific}}` | Named volumes. Use string form for shared names or object form with `container_specific: true` to prefix with `<container>_` and keep volumes private. Paths are relative to `$HOME`. |
 | `ports` | `string[]` | Port mappings (`host:container`). |
 | `cmd` | `string[]` | Default Docker `CMD`. |
 | `entrypoint` | `string[]` | Docker `ENTRYPOINT`. |
