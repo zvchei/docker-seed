@@ -355,6 +355,8 @@ def build_merged_for_container(
             merged["network_mode"] = container["network_mode"]
         if container.get("restart") is not None:
             merged["restart"] = container["restart"]
+        if container.get("apt_packages"):
+            merged["apt_packages"] = merge_field(merged.get("apt_packages"), container["apt_packages"], "apt_packages")
         if container.get("env_vars"):
             merged.setdefault("env_vars", {}).update(container["env_vars"])
         if container.get("volumes"):
@@ -430,6 +432,9 @@ def build_merged_for_container(
 
     if container.get("restart") is not None:
         merged["restart"] = container["restart"]
+
+    if container.get("apt_packages"):
+        merged["apt_packages"] = merge_field(merged.get("apt_packages"), container["apt_packages"], "apt_packages")
 
     if container.get("env_vars"):
         merged.setdefault("env_vars", {}).update(container["env_vars"])

@@ -72,5 +72,40 @@ class SeedContainerVolumeOverrideTests(unittest.TestCase):
         self.assertIn("    hf_cache:", compose)
 
 
+class SeedContainerAptPackagesOverrideTests(unittest.TestCase):
+    def test_container_apt_packages_are_added(self) -> None:
+        container = {
+            "name": "svc",
+            "enabled": True,
+            "templates": [],
+            "apt_packages": ["curl", "jq"],
+        }
+        merged = seed.build_merged_for_container(container, [container])
+        self.assertIn("curl", merged["apt_packages"])
+        self.assertIn("jq", merged["apt_packages"])
+
+    def test_container_apt_packages_union_with_template(self) -> None:
+        container = {
+            "name": "svc",
+            "enabled": True,
+            "templates": ["python"],
+            "apt_packages": ["jq"],
+        }
+        merged = seed.build_merged_for_container(container, [container])
+        # python template provides python3-venv and python3-dev; jq is appended
+        self.assertIn("python3-venv", merged["apt_packages"])
+        self.assertIn("jq", merged["apt_packages"])
+
+    def test_container_apt_packages_deduplicated(self) -> None:
+        container = {
+            "name": "svc",
+            "enabled": True,
+            "templates": ["python"],
+            "apt_packages": ["python3-venv"],  # already in python template
+        }
+        merged = seed.build_merged_for_container(container, [container])
+        self.assertEqual(merged["apt_packages"].count("python3-venv"), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
