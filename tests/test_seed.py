@@ -38,5 +38,39 @@ class SeedVolumeResolutionTests(unittest.TestCase):
             )
 
 
+class SeedContainerVolumeOverrideTests(unittest.TestCase):
+    def _make_container(self, volumes: dict) -> dict:
+        return {
+            "name": "svc",
+            "enabled": True,
+            "templates": [],
+            "volumes": volumes,
+        }
+
+    def test_container_volumes_are_merged_into_output(self) -> None:
+        container = self._make_container({"hf_cache": ".cache/huggingface"})
+        merged = seed.build_merged_for_container(container, [container])
+        self.assertIn("hf_cache", merged["volumes"])
+        self.assertEqual(merged["volumes"]["hf_cache"], ".cache/huggingface")
+
+    def test_container_volumes_override_template_volumes(self) -> None:
+        """A volume key in containers.json overwrites the same key from templates."""
+        container = {
+            "name": "svc",
+            "enabled": True,
+            "templates": ["python"],
+            "volumes": {"cache": ".cache/custom"},
+        }
+        merged = seed.build_merged_for_container(container, [container])
+        self.assertEqual(merged["volumes"]["cache"], ".cache/custom")
+
+    def test_container_volumes_appear_in_compose(self) -> None:
+        container = self._make_container({"hf_cache": ".cache/huggingface"})
+        merged = seed.build_merged_for_container(container, [container])
+        compose = seed.generate_compose("svc", merged)
+        self.assertIn("- hf_cache:/home/${CONTAINER_USER}/.cache/huggingface", compose)
+        self.assertIn("    hf_cache:", compose)
+
+
 if __name__ == "__main__":
     unittest.main()

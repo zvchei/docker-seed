@@ -83,6 +83,7 @@ When `seed.py` merges multiple templates for a container:
 - Use `"extends": "<name>"` to reuse another service's image and settings without rebuilding
 - Use `"main": "<template>"` to select which template's `cmd` wins as the default command
 - Command resolution order: explicit `cmd` > `main` template's `cmd` > last template with a `cmd`
+- `"volumes"`, `"env_vars"`, and `"build_args"` can be specified directly on a container to add or override values from its templates (same merge semantics as template merging: dicts are merged, container keys win)
 - See `examples_containers.json` for usage patterns.
 
 ## Security defaults

@@ -357,6 +357,8 @@ def build_merged_for_container(
             merged["restart"] = container["restart"]
         if container.get("env_vars"):
             merged.setdefault("env_vars", {}).update(container["env_vars"])
+        if container.get("volumes"):
+            merged.setdefault("volumes", {}).update(container["volumes"])
         if container.get("cmd") is not None:
             if isinstance(container["cmd"], list):
                 merged["cmd"] = container["cmd"]
@@ -434,6 +436,9 @@ def build_merged_for_container(
 
     if container.get("build_args"):
         merged.setdefault("build_args", {}).update(container["build_args"])
+
+    if container.get("volumes"):
+        merged.setdefault("volumes", {}).update(container["volumes"])
 
     return merged
 
