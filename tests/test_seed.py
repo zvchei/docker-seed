@@ -107,5 +107,35 @@ class SeedContainerAptPackagesOverrideTests(unittest.TestCase):
         self.assertEqual(merged["apt_packages"].count("python3-venv"), 1)
 
 
+class SeedNetworkGenerationTests(unittest.TestCase):
+    def test_internal_network_emits_internal_true(self) -> None:
+        merged = {"networks": [{"name": "llama_local", "internal": True}]}
+        compose = seed.generate_compose("llama_cpp", merged)
+        self.assertIn("networks:", compose)
+        self.assertIn("    llama_local:", compose)
+        self.assertIn("      internal: true", compose)
+
+    def test_external_network_emits_external_true(self) -> None:
+        merged = {"networks": [{"name": "some_net", "external": True}]}
+        compose = seed.generate_compose("svc", merged)
+        self.assertIn("    some_net:", compose)
+        self.assertIn("      external: true", compose)
+        self.assertNotIn("internal: true", compose)
+
+    def test_internal_and_external_both_emitted(self) -> None:
+        """internal and external are orthogonal properties; both can be set."""
+        merged = {"networks": [{"name": "pre_existing_isolated", "external": True, "internal": True}]}
+        compose = seed.generate_compose("svc", merged)
+        self.assertIn("      external: true", compose)
+        self.assertIn("      internal: true", compose)
+
+    def test_plain_network_emits_no_flags(self) -> None:
+        merged = {"networks": [{"name": "default_net"}]}
+        compose = seed.generate_compose("svc", merged)
+        self.assertIn("    default_net:", compose)
+        self.assertNotIn("external: true", compose)
+        self.assertNotIn("internal: true", compose)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -566,6 +566,8 @@ def generate_compose(name: str, merged: Merged) -> str:
             lines.append(f"{indent}{net['name']}:")
             if net.get("external"):
                 lines.append(f"{indent}{indent}external: true")
+            if net.get("internal"):
+                lines.append(f"{indent}{indent}internal: true")
 
     lines.append("")
     return "\n".join(lines)
