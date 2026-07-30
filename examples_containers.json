@@ -70,6 +70,12 @@
         "networks": [{"name": "ollama_network", "external": true}]
     },
     {
+        "name": "llama_cpp",
+        "enabled": true,
+        "templates": ["llama-cpp"],
+        "networks": [{"name": "llama_local", "internal": true}]
+    },
+    {
         "name": "python",
         "enabled": true,
         "templates": ["python"],

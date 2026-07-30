@@ -1,0 +1,16 @@
+{
+    "description": "llama.cpp Vulkan binaries",
+    "apt_packages": ["ca-certificates", "libvulkan1", "libgomp1"],
+    "assets": [
+        {
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10173/llama-b10173-bin-ubuntu-vulkan-x64.tar.gz",
+            "filename": "llama-b10173-bin-ubuntu-vulkan-x64.tar.gz"
+        }
+    ],
+    "volumes": {
+        "llama_cpp": ".llama.cpp",
+        "llama_cpp_hf_cache": ".cache/huggingface"
+    },
+    "ports": ["8080:8080"],
+    "cmd": ["llama-cli", "--help"]
+}

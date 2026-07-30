@@ -28,5 +28,11 @@
         "enabled": true,
         "templates": ["gui"],
         "ports": ["8900:5900"]
+    },
+    {
+        "name": "llama_cpp",
+        "enabled": true,
+        "templates": ["llama-cpp"],
+        "networks": [{"name": "llama_local", "internal": true}]
     }
 ]
