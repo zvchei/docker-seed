@@ -1,0 +1,13 @@
+{
+    "description": "Atlassian Command Line Interface (ACLI)",
+    "assets": [
+        {
+            "url": "https://acli.atlassian.com/linux/1.3.29-stable/acli_1.3.29-stable_linux_amd64.tar.gz",
+            "filename": "acli_1.3.29-stable_linux_amd64.tar.gz"
+        }
+    ],
+    "volumes": {
+        "acli_config": ".config/acli",
+        "acli_keyrings": ".local/share/keyrings"
+    }
+}
