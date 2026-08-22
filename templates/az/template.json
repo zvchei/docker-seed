@@ -1,0 +1,6 @@
+{
+    "description": "Azure CLI (az)",
+    "volumes": {
+        "azure_config": ".azure"
+    }
+}

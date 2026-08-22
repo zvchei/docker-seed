@@ -66,6 +66,15 @@
         "cmd": ["/bin/bash"]
     },
     {
+        "name": "az",
+        "enabled": true,
+        "templates": [
+            "az"
+        ],
+        "interactive": true,
+        "cmd": ["/bin/bash"]
+    },
+    {
         "name": "gui",
         "enabled": true,
         "templates": ["gui"],
