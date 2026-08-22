@@ -1,32 +1,7 @@
 [
     {
-        "name": "code",
+        "name": "default",
         "enabled": true,
-        "templates": [
-            "git",
-            "copilot-cli",
-            "vscode"
-        ],
-        "main": "vscode"
-    },
-    {
-        "name": "copilot",
-        "enabled": true,
-        "extends": "code",
-        "cmd": ["copilot"]
-    },
-    {
-        "name": "git",
-        "enabled": true,
-        "templates": [
-            "git",
-            "ssh_keys"
-        ]
-    },
-    {
-        "name": "gui",
-        "enabled": true,
-        "templates": ["gui"],
-        "ports": ["8900:5900"]
+        "templates": []
     }
 ]
