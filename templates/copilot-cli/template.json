@@ -1,6 +1,6 @@
 {
     "description": "GitHub Copilot CLI",
-    "apt_packages": ["curl"],
+    "apt_packages": ["curl", "gnome-keyring", "libsecret-tools"],
     "assets": [
         {
             "url": "https://gh.io/copilot-install",
@@ -8,7 +8,7 @@
         }
     ],
     "volumes": {
-        "copilot": ".copilot",
-        "cache": ".cache"
-    }
+        "copilot": ".copilot"
+    },
+    "cmd": ["copilot"]
 }
