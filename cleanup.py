@@ -6,11 +6,10 @@ with containers.json.
 Steps:
   1. Compare services/ against every entry in containers.json
   2. Remove services/<name>/ directories that are no longer declared
-  3. List Docker images that use the compose project prefix
-  4. Report stale images (no matching service in containers.json)
-  5. Report stale volumes (not used by any declared service)
-  6. Write a temporary shell script to remove stale images and volumes,
-     open it in $EDITOR for review, then optionally run it
+  3. List Docker images and volumes that will be kept
+  4. Write a temporary shell script to remove stale images and volumes,
+     open it in $EDITOR for review, print planned deletions, then
+     optionally run it
 """
 
 import json
@@ -25,10 +24,10 @@ from typing import Any
 
 import seed
 
-SCRIPT_DIR: Path = Path(__file__).resolve().parent
-SERVICES_DIR: Path = SCRIPT_DIR / "services"
-CONTAINERS_FILE: Path = SCRIPT_DIR / "containers.json"
-ENV_FILE: Path = SCRIPT_DIR / ".env"
+WORK_DIR: Path = Path.cwd()
+SERVICES_DIR: Path = WORK_DIR / "services"
+CONTAINERS_FILE: Path = WORK_DIR / "containers.json"
+ENV_FILE: Path = WORK_DIR / ".env"
 
 RED = "\033[31m"
 GREEN = "\033[32m"
@@ -62,10 +61,10 @@ def load_env(env_file: Path) -> dict[str, str]:
     return env
 
 
-def compose_project_name(script_dir: Path, env: dict[str, str]) -> str:
+def compose_project_name(work_dir: Path, env: dict[str, str]) -> str:
     if project := env.get("COMPOSE_PROJECT_NAME"):
         return project
-    return script_dir.name.lower()
+    return work_dir.name.lower()
 
 
 def declared_service_names(containers: list[dict[str, Any]]) -> set[str]:
@@ -181,13 +180,37 @@ def find_stale_volumes(
     return stale
 
 
-def report_stale_items(label: str, stale: list[str]) -> None:
+def report_kept_items(label: str, items: list[str]) -> None:
     print(f"\n{BLUE}⚙{RESET} {label}:")
-    if stale:
-        for item in stale:
-            print(f"\t{YELLOW}◦{RESET} {item}")
+    if items:
+        for item in items:
+            print(f"\t{GREEN}✓{RESET} {item}")
     else:
-        print(f"\t{GREEN}✓{RESET} None")
+        print(f"\t{GREY}◦{RESET} None")
+
+
+def parse_cleanup_script(path: Path) -> tuple[list[str], list[str]]:
+    """Extract image and volume targets from the edited cleanup script."""
+    images: list[str] = []
+    volumes: list[str] = []
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            parts = shlex.split(line)
+        except ValueError:
+            continue
+        if len(parts) >= 3 and parts[0] == "docker" and parts[1] == "rmi":
+            images.extend(parts[2:])
+        elif (
+            len(parts) >= 4
+            and parts[0] == "docker"
+            and parts[1] == "volume"
+            and parts[2] == "rm"
+        ):
+            volumes.extend(parts[3:])
+    return images, volumes
 
 
 def default_editor() -> str:
@@ -244,6 +267,27 @@ def open_in_editor(path: Path) -> None:
 
 
 def prompt_run_cleanup_script(path: Path) -> None:
+    images, volumes = parse_cleanup_script(path)
+
+    print(f"\n{BLUE}⚙{RESET} Will delete images:")
+    if images:
+        for image in images:
+            print(f"\t{YELLOW}◦{RESET} {image}")
+    else:
+        print(f"\t{GREY}◦{RESET} None")
+
+    print(f"\n{BLUE}⚙{RESET} Will delete volumes:")
+    if volumes:
+        for volume in volumes:
+            print(f"\t{YELLOW}◦{RESET} {volume}")
+    else:
+        print(f"\t{GREY}◦{RESET} None")
+
+    if not images and not volumes:
+        print(f"\n{GREEN}✓{RESET} Nothing left to delete in the cleanup script.")
+        path.unlink(missing_ok=True)
+        return
+
     answer = input(f"\nRun this cleanup script? [y/N]: ").strip().lower()
     if answer not in ("y", "yes"):
         print(f"{GREY}◦{RESET} Skipped. Script left at {path}")
@@ -266,7 +310,7 @@ def main() -> None:
 
     containers = load_containers(CONTAINERS_FILE)
     env = load_env(ENV_FILE)
-    project = compose_project_name(SCRIPT_DIR, env)
+    project = compose_project_name(WORK_DIR, env)
 
     declared = declared_service_names(containers)
     existing = existing_service_dirs(SERVICES_DIR)
@@ -293,34 +337,19 @@ def main() -> None:
     cleanup_service_dirs(extra, SERVICES_DIR)
 
     project_images = list_project_images(project)
-    print(f"\n{BLUE}⚙{RESET} Project images ({project}-*):")
-    if project_images:
-        for image in project_images:
-            print(f"\t{GREY}◦{RESET} {image}")
-    else:
-        print(f"\t{GREY}◦{RESET} None")
-
     valid_image_names = image_service_names(containers)
     stale_images = find_stale_images(project_images, valid_image_names, project)
-    report_stale_items(
-        "Stale images (no matching service in containers.json)",
-        stale_images,
-    )
+    stale_image_set = set(stale_images)
+    kept_images = [image for image in project_images if image not in stale_image_set]
 
     project_volumes = list_project_volumes(project)
-    print(f"\n{BLUE}⚙{RESET} Project volumes ({project}_*):")
-    if project_volumes:
-        for volume in project_volumes:
-            print(f"\t{GREY}◦{RESET} {volume}")
-    else:
-        print(f"\t{GREY}◦{RESET} None")
-
     valid_volume_names = expected_volume_names(containers)
     stale_volumes = find_stale_volumes(project_volumes, valid_volume_names, project)
-    report_stale_items(
-        "Stale volumes (not declared by any service in containers.json)",
-        stale_volumes,
-    )
+    stale_volume_set = set(stale_volumes)
+    kept_volumes = [volume for volume in project_volumes if volume not in stale_volume_set]
+
+    report_kept_items(f"Images that will not be deleted ({project}-*)", kept_images)
+    report_kept_items(f"Volumes that will not be deleted ({project}_*)", kept_volumes)
 
     if stale_images or stale_volumes:
         script_path = write_cleanup_script(stale_images, stale_volumes, project)
