@@ -3,6 +3,10 @@
 DockerSeed v2 — Generates Dockerfile and docker-compose.yaml
 by combining feature templates defined in templates/.
 
+Operates on the current working directory: reads containers.json from cwd,
+writes services/ and assets.json there, and prefers ./templates over the
+repository templates. Syncs common/ into cwd when working outside the repo.
+
 Each entry in containers.json may set "enabled": false to skip generating
 that service (defaults to true when omitted).
 """
@@ -15,10 +19,14 @@ from pathlib import Path
 from typing import Any, TypedDict, cast
 
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
-TEMPLATES_DIR: Path = SCRIPT_DIR / "templates"
-SERVICES_DIR: Path = SCRIPT_DIR / "services"
-CONTAINERS_FILE: Path = SCRIPT_DIR / "containers.json"
-ASSETS_FILE: Path = SCRIPT_DIR / "assets.json"
+WORK_DIR: Path = Path.cwd()
+REPO_TEMPLATES_DIR: Path = SCRIPT_DIR / "templates"
+LOCAL_TEMPLATES_DIR: Path = WORK_DIR / "templates"
+SERVICES_DIR: Path = WORK_DIR / "services"
+CONTAINERS_FILE: Path = WORK_DIR / "containers.json"
+ASSETS_FILE: Path = WORK_DIR / "assets.json"
+COMMON_SRC: Path = SCRIPT_DIR / "common"
+COMMON_DST: Path = WORK_DIR / "common"
 
 type Manifest = dict[str, Any]
 type Fragment = tuple[str, str]
@@ -130,8 +138,38 @@ def merge_field(existing: Any, value: Any, key: str = "", method: str = "merge")
     return value
 
 
+def sync_common() -> None:
+    """Copy repo common/ into the working directory when they differ."""
+    if COMMON_SRC.resolve() == COMMON_DST.resolve():
+        return
+    if not COMMON_SRC.is_dir():
+        print(f"Error: shared common directory not found at {COMMON_SRC}")
+        sys.exit(1)
+    if COMMON_DST.exists():
+        shutil.rmtree(COMMON_DST)
+    shutil.copytree(COMMON_SRC, COMMON_DST)
+    print(f"\033[32m✓\033[0m  Synced common/ into {COMMON_DST}")
+
+
+def find_template_dir(name: str) -> Path:
+    """Return the template directory, preferring local over repo templates."""
+    local_dir: Path = LOCAL_TEMPLATES_DIR / name
+    if (local_dir / "template.json").exists():
+        return local_dir
+
+    repo_dir: Path = REPO_TEMPLATES_DIR / name
+    if (repo_dir / "template.json").exists():
+        return repo_dir
+
+    print(
+        f"Error: template '{name}' not found in "
+        f"{LOCAL_TEMPLATES_DIR} or {REPO_TEMPLATES_DIR}"
+    )
+    sys.exit(1)
+
+
 def load_template(name: str) -> Template:
-    tpl_dir: Path = TEMPLATES_DIR / name
+    tpl_dir: Path = find_template_dir(name)
     manifest_path: Path = tpl_dir / "template.json"
     if not manifest_path.exists():
         print(f"Error: template '{name}' not found at {tpl_dir}")
@@ -170,10 +208,8 @@ def resolve_templates(names: list[str], _chain: list[str] | None = None) -> list
             print(f"Error: circular dependency detected: {' -> '.join(_chain)} -> {name}")
             sys.exit(1)
 
-        manifest_path = TEMPLATES_DIR / name / "template.json"
-        if not manifest_path.exists():
-            print(f"Error: template '{name}' not found at {TEMPLATES_DIR / name}")
-            sys.exit(1)
+        tpl_dir: Path = find_template_dir(name)
+        manifest_path: Path = tpl_dir / "template.json"
 
         with open(manifest_path) as f:
             manifest: Manifest = json.load(f)
@@ -577,6 +613,8 @@ def main() -> None:
     if not CONTAINERS_FILE.exists():
         print(f"Error: {CONTAINERS_FILE} not found.")
         sys.exit(1)
+
+    sync_common()
 
     with open(CONTAINERS_FILE) as f:
         containers: list[dict[str, Any]] = json.load(f)

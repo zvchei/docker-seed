@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-grow.py — Fetches all assets listed in assets.json into the assets/ directory.
+grow.py — Fetches all assets listed in assets.json into the assets/ directory
+in the current working directory.
 Run this after seed.py and before harvest.py / docker-compose build.
 Files already present in assets/ are skipped.
 """
@@ -11,9 +12,9 @@ import urllib.request
 from pathlib import Path
 from typing import Callable
 
-SCRIPT_DIR: Path = Path(__file__).resolve().parent
-ASSETS_FILE: Path = SCRIPT_DIR / "assets.json"
-ASSETS_DIR: Path = SCRIPT_DIR / "assets"
+WORK_DIR: Path = Path.cwd()
+ASSETS_FILE: Path = WORK_DIR / "assets.json"
+ASSETS_DIR: Path = WORK_DIR / "assets"
 
 
 def _make_progress() -> Callable[[int, int, int], None]:

@@ -2,30 +2,34 @@
 
 DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `./harvest.py`.
 
+`seed.py`, `grow.py`, `harvest.py`, and `cleanup.py` all operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
+
 ## How services get into the tree
 
-Add or edit entries in `containers.json`, define reusable pieces under `templates/`, then run `./seed.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
+Add or edit entries in `containers.json`, optionally add project-specific templates under `./templates/`, then run `seed.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
 
 ## Quick start
 
-1. **Clone** this repository.
+1. **Clone** this repository (or point at an existing clone of the scripts).
 
-2. **Generate services** (required for anything declared in `containers.json` with `"enabled": true`; safe to run if you only use legacy services and all template-driven entries are disabled):
+2. In your project directory (with a `containers.json`), **generate services**:
 
    ```bash
+   /path/to/docker-seed/seed.py
+   # or, from the repo itself:
    ./seed.py
    ```
 
-3. **Manage assets** (optional, only if you've defined assets in `assets.json`):
+3. **Manage assets** (optional, only if `seed.py` wrote an `assets.json`):
 
    ```bash
-   ./grow.py
+   /path/to/docker-seed/grow.py
    ```
 
-4. **Bake the stack** (regenerates root `docker-compose.yaml`, walks through `.env`, and can run `docker-compose build`):
+4. **Bake the stack** (syncs `common/`, regenerates root `docker-compose.yaml`, walks through `.env`, and can run `docker-compose build`):
 
    ```bash
-   ./harvest.py
+   /path/to/docker-seed/harvest.py
    ```
 
 5. **Run a service** (pick a name from `containers.json`):
@@ -46,18 +50,23 @@ Add or edit entries in `containers.json`, define reusable pieces under `template
 
 ## Generating services from templates (`seed.py`)
 
-`seed.py` reads **`containers.json`** and, for each enabled entry, merges the listed **`templates/`** manifests and Dockerfile fragments into `services/<name>/.`
+`seed.py` reads **`containers.json`** from the current directory and, for each enabled entry, merges the listed templates into `services/<name>/`. Template lookup order:
+
+1. `./templates/<name>/` in the current working directory (wins on name clash)
+2. `<docker-seed>/templates/<name>/` from the repository that contains the script
+
+`seed.py` / `harvest.py` also sync the repo’s `common/` directory into `./common/` when the working directory is not the repo itself, so local builds stay self-contained.
 
 **Workflow:**
 
-1. Edit **`containers.json`** - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
-2. Run **`./seed.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry.
-3. **(Optional)** Run **`./grow.py`** - download asset files listed in `assets.json` into the `assets/` directory.
-4. Run **`./harvest.py`** - regenerates the root `docker-compose.yaml`, walks through `.env`, and optionally builds images.
+1. Edit **`containers.json`** in the project directory - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
+2. Run **`seed.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry; writes `assets.json` when needed.
+3. **(Optional)** Run **`grow.py`** - download asset files listed in `assets.json` into `./assets/`.
+4. Run **`harvest.py`** - regenerates the root `docker-compose.yaml`, walks through `.env`, and optionally builds images.
 
 ### Template layout
 
-A template is a directory under `templates/` with a manifest and optional Dockerfile fragments:
+A template is a directory under `templates/` (repo built-ins and/or local overrides) with a manifest and optional Dockerfile fragments:
 
 ```
 templates/
@@ -164,11 +173,7 @@ This copies the image, volumes, ports, and other settings from `my-container`. Y
 
 ### Asset management
 
-Use **`grow.py`** to download asset files listed in `assets.json` into the `assets/` directory. These files can then be copied into containers during build. Run:
-
-```bash
-./grow.py --help
-```
+Use **`grow.py`** to download asset files listed in `./assets.json` into `./assets/`. These files can then be copied into containers during build.
 
 Use **`harvest.py`** to orchestrate setup, compose generation, environment prompts, and optional image builds.
 

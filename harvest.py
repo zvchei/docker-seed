@@ -2,11 +2,14 @@
 """
 harvest.py — Orchestrates the DockerSeed stack after seed.py has run.
 
+Operates on the current working directory (same as cleanup.py / seed.py).
+
 Steps:
-  1. Read enabled services from containers.json
-  2. Regenerate the root docker-compose.yaml (include stanza)
-  3. Interactively review and update .env variables
-  4. Optionally run `docker-compose build`
+  1. Sync common/ from the DockerSeed repo into cwd when needed
+  2. Read enabled services from ./containers.json
+  3. Regenerate the root ./docker-compose.yaml (include stanza)
+  4. Interactively review and update .env variables
+  5. Optionally run `docker-compose build`
 """
 
 import json
@@ -17,11 +20,14 @@ from pathlib import Path
 from typing import Any
 
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
-SERVICES_DIR: Path = SCRIPT_DIR / "services"
-CONTAINERS_FILE: Path = SCRIPT_DIR / "containers.json"
-ENV_FILE: Path = SCRIPT_DIR / ".env"
-ENV_TMP: Path = SCRIPT_DIR / ".env.tmp"
-DOCKER_COMPOSE_FILE: Path = SCRIPT_DIR / "docker-compose.yaml"
+WORK_DIR: Path = Path.cwd()
+SERVICES_DIR: Path = WORK_DIR / "services"
+CONTAINERS_FILE: Path = WORK_DIR / "containers.json"
+ENV_FILE: Path = WORK_DIR / ".env"
+ENV_TMP: Path = WORK_DIR / ".env.tmp"
+DOCKER_COMPOSE_FILE: Path = WORK_DIR / "docker-compose.yaml"
+COMMON_SRC: Path = SCRIPT_DIR / "common"
+COMMON_DST: Path = WORK_DIR / "common"
 
 # ANSI colour helpers
 RED = "\033[31m"
@@ -48,7 +54,20 @@ def get_enabled_services(containers_file: Path) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def generate_root_compose(script_dir: Path, service_names: list[str]) -> None:
+def sync_common() -> None:
+    """Copy repo common/ into the working directory when they differ."""
+    if COMMON_SRC.resolve() == COMMON_DST.resolve():
+        return
+    if not COMMON_SRC.is_dir():
+        print(f"{RED}✗{RESET} Shared common directory not found at {COMMON_SRC}")
+        sys.exit(1)
+    if COMMON_DST.exists():
+        shutil.rmtree(COMMON_DST)
+    shutil.copytree(COMMON_SRC, COMMON_DST)
+    print(f"{GREEN}✓{RESET} Synced common/ into {COMMON_DST}")
+
+
+def generate_root_compose(work_dir: Path, service_names: list[str]) -> None:
     print(f"\n{BLUE}⚙{RESET} Generating docker-compose.yaml from the list of services:")
 
     lines = ["include:\n", "  - common/docker-compose.yaml\n"]
@@ -56,7 +75,7 @@ def generate_root_compose(script_dir: Path, service_names: list[str]) -> None:
         lines.append(f"  - services/{name}/docker-compose.yaml\n")
         print(f"\t{GREY}◦{RESET} {name}")
 
-    (script_dir / "docker-compose.yaml").write_text("".join(lines))
+    (work_dir / "docker-compose.yaml").write_text("".join(lines))
     print(f"{GREEN}✓{RESET} Done.")
 
 
@@ -176,9 +195,11 @@ def prompt_docker_build() -> None:
 def main() -> None:
     print("Starting build...")
 
+    sync_common()
+
     service_names = get_enabled_services(CONTAINERS_FILE)
 
-    generate_root_compose(SCRIPT_DIR, service_names)
+    generate_root_compose(WORK_DIR, service_names)
 
     print()
     configure_env(ENV_FILE, ENV_TMP)
