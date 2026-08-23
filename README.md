@@ -55,7 +55,7 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
 1. `./templates/<name>/` in the current working directory (wins on name clash)
 2. `<docker-seed>/templates/<name>/` from the repository that contains the script
 
-`seed.py` / `harvest.py` also sync the repo’s `common/` directory into `./common/` when the working directory is not the repo itself, so local builds stay self-contained.
+`seed.py` / `harvest.py` also sync the repo’s `common/` directory into `./common/` when the working directory is not the repo itself, so local builds stay self-contained. `seed.py` also copies the repo's default `.env` into `./.env` when the working directory doesn't already have one.
 
 **Workflow:**
 

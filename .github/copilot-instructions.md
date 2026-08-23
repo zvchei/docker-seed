@@ -15,7 +15,7 @@ Scripts operate on the **current working directory** (`Path.cwd()`), not the scr
                    # optionally runs docker-compose build
 ```
 
-Built-in templates come from the repo `templates/`; local `./templates/<name>/` overrides same-named built-ins. Outside the repo, `seed.py` / `harvest.py` sync `common/` into `./common/`.
+Built-in templates come from the repo `templates/`; local `./templates/<name>/` overrides same-named built-ins. Outside the repo, `seed.py` / `harvest.py` sync `common/` into `./common/`. `seed.py` also copies the repo's default `.env` into `./.env` if the working directory doesn't already have one.
 
 ## Generated files — never edit manually
 

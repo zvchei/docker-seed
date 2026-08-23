@@ -6,7 +6,7 @@ DockerSeed is a **code-generation tool**, not a service itself. It generates Doc
 
 ## Core workflow
 
-Scripts operate on the **current working directory** (`Path.cwd()`), not the directory that contains the script (same pattern as `cleanup.py`).
+Scripts operate on the **current working directory** (`Path.cwd()`), not the directory that contains the script.
 
 ```
 ./seed.py          # reads ./containers.json; generates ./services/<name>/…
@@ -15,7 +15,7 @@ Scripts operate on the **current working directory** (`Path.cwd()`), not the dir
                    # optionally runs docker-compose build
 ```
 
-Built-in templates and the shared `common/` tree live in the DockerSeed repository. When the working directory is not the repo, `seed.py` / `harvest.py` sync `common/` into `./common/`. Template lookup prefers `./templates/<name>/` over `<repo>/templates/<name>/`.
+Built-in templates and the shared `common/` tree live in the DockerSeed repository. When the working directory is not the repo, `seed.py` / `harvest.py` sync `common/` into `./common/`. Template lookup prefers `./templates/<name>/` over `<repo>/templates/<name>/`. `seed.py` also copies the repo's default `.env` into `./.env` if the working directory doesn't already have one.
 
 ## Generated files — never edit manually
 
