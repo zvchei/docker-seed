@@ -22,8 +22,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-import seed
-
 WORK_DIR: Path = Path.cwd()
 SERVICES_DIR: Path = WORK_DIR / "services"
 CONTAINERS_FILE: Path = WORK_DIR / "containers.json"
@@ -86,12 +84,37 @@ def image_service_names(containers: list[dict[str, Any]]) -> set[str]:
     return {"base", *(container["name"] for container in containers)}
 
 
-def expected_volume_names(containers: list[dict[str, Any]]) -> set[str]:
-    """Return compose volume keys declared across all containers."""
-    names: set[str] = {"root"}
-    for container in containers:
-        merged = seed.build_merged_for_container(container, containers)
-        names.update(seed.resolve_container_volumes(container["name"], merged))
+def volume_names_from_compose(path: Path) -> set[str]:
+    """Extract top-level compose volume keys from a generated docker-compose.yaml."""
+    names: set[str] = set()
+    in_top_volumes = False
+    for line in path.read_text().splitlines():
+        if not in_top_volumes:
+            if line.startswith("volumes:") and line.lstrip() == line:
+                in_top_volumes = True
+            continue
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if not line[0].isspace():
+            break
+        key = stripped.split(":", 1)[0].strip()
+        if key:
+            names.add(key)
+    return names
+
+
+def expected_volume_names(services_dir: Path) -> set[str]:
+    """Return compose volume keys declared in generated services/*/docker-compose.yaml."""
+    names: set[str] = set()
+    if not services_dir.exists():
+        return names
+    for service_dir in services_dir.iterdir():
+        if not service_dir.is_dir() or service_dir.name.startswith("."):
+            continue
+        compose = service_dir / "docker-compose.yaml"
+        if compose.exists():
+            names.update(volume_names_from_compose(compose))
     return names
 
 
@@ -175,6 +198,9 @@ def find_stale_volumes(
     stale: list[str] = []
     for volume in project_volumes:
         volume_name = volume[len(prefix) :]
+        # Always preserve the project root volume; never put it in the delete script.
+        if volume_name == "root":
+            continue
         if volume_name not in valid_names:
             stale.append(volume)
     return stale
@@ -266,7 +292,22 @@ def open_in_editor(path: Path) -> None:
     subprocess.run([*shlex.split(editor), str(path)], check=True)
 
 
-def prompt_run_cleanup_script(path: Path) -> None:
+def report_root_volume_preserved(project: str) -> None:
+    """Note that a stale {project}_root was kept, and how to remove it manually."""
+    root_volume = f"{project}_root"
+    result = run_docker(["volume", "inspect", root_volume])
+    if result.returncode != 0:
+        return
+    print(f"\n{BLUE}⚙{RESET} Volume {root_volume} was preserved intentionally.")
+    print(f"{GREY}◦{RESET} To delete it manually: docker volume rm {shlex.quote(root_volume)}")
+
+
+def prompt_run_cleanup_script(
+    path: Path,
+    project: str,
+    *,
+    root_volume_stale: bool = False,
+) -> None:
     images, volumes = parse_cleanup_script(path)
 
     print(f"\n{BLUE}⚙{RESET} Will delete images:")
@@ -298,6 +339,8 @@ def prompt_run_cleanup_script(path: Path) -> None:
     if result.returncode == 0:
         print(f"{GREEN}✓{RESET} Cleanup script completed.")
         path.unlink(missing_ok=True)
+        if root_volume_stale:
+            report_root_volume_preserved(project)
     else:
         print(f"{RED}✗{RESET} Cleanup script failed with exit code {result.returncode}.")
         print(f"{GREY}◦{RESET} Script left at {path}")
@@ -343,10 +386,12 @@ def main() -> None:
     kept_images = [image for image in project_images if image not in stale_image_set]
 
     project_volumes = list_project_volumes(project)
-    valid_volume_names = expected_volume_names(containers)
+    valid_volume_names = expected_volume_names(SERVICES_DIR)
     stale_volumes = find_stale_volumes(project_volumes, valid_volume_names, project)
     stale_volume_set = set(stale_volumes)
     kept_volumes = [volume for volume in project_volumes if volume not in stale_volume_set]
+    root_volume = f"{project}_root"
+    root_volume_stale = root_volume in project_volumes and "root" not in valid_volume_names
 
     report_kept_items(f"Images that will not be deleted ({project}-*)", kept_images)
     report_kept_items(f"Volumes that will not be deleted ({project}_*)", kept_volumes)
@@ -354,7 +399,11 @@ def main() -> None:
     if stale_images or stale_volumes:
         script_path = write_cleanup_script(stale_images, stale_volumes, project)
         open_in_editor(script_path)
-        prompt_run_cleanup_script(script_path)
+        prompt_run_cleanup_script(
+            script_path,
+            project,
+            root_volume_stale=root_volume_stale,
+        )
     else:
         print(f"\n{GREEN}✓{RESET} No stale images or volumes to remove.")
 
