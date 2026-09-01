@@ -691,7 +691,7 @@ def main() -> None:
             print(f"  \033[34m⬇\033[0m  {asset['filename']}")
             print(f"     ↳ {asset['url']}")
 
-        print(f"\nRun \033[1m./grow.py\033[0m to download assets before building.")
+        print(f"\nRun \033[1m./tend.py\033[0m to download assets before building.")
     elif ASSETS_FILE.exists():
         ASSETS_FILE.unlink()
 

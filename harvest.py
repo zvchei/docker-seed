@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-harvest.py — Orchestrates the DockerSeed stack after seed.py has run.
+harvest.py — Orchestrates the DockerSeed stack after sow.py has run.
 
-Operates on the current working directory (same as cleanup.py / seed.py).
+Operates on the current working directory (same as cleanup.py / sow.py).
 
 Steps:
   1. Sync common/ from the DockerSeed repo into cwd when needed

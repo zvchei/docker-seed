@@ -370,7 +370,7 @@ def main() -> None:
     else:
         print(f"\t{GREY}◦{RESET} None")
 
-    print(f"\n{BLUE}⚙{RESET} Services missing from services/ (run ./seed.py to generate):")
+    print(f"\n{BLUE}⚙{RESET} Services missing from services/ (run ./sow.py to generate):")
     if missing:
         for name in missing:
             print(f"\t{YELLOW}◦{RESET} {name}")

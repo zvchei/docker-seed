@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-grow.py — Fetches all assets listed in assets.json into the assets/ directory
+tend.py — Fetches all assets listed in assets.json into the assets/ directory
 in the current working directory.
-Run this after seed.py and before harvest.py / docker-compose build.
+Run this after sow.py and before harvest.py / docker-compose build.
 Files already present in assets/ are skipped.
 """
 

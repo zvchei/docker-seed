@@ -6,7 +6,7 @@ Usage:
     ./till.py              # initialize the current working directory
     ./till.py <directory>  # initialize a path relative to the current directory
 
-Writes the files needed to run seed.py, grow.py, and harvest.py.
+Writes the files needed to run sow.py, tend.py, and harvest.py.
 Never overwrites existing files: if any planned file already exists,
 the script reports them and exits without writing anything.
 If the target directory does not exist, the user is asked whether to create it.
@@ -153,14 +153,14 @@ def confirm_create(target: Path) -> bool:
 
 
 def print_next_steps(target: Path, cwd: Path) -> None:
-    seed = SCRIPT_DIR / "seed.py"
-    grow = SCRIPT_DIR / "grow.py"
+    sow = SCRIPT_DIR / "sow.py"
+    tend = SCRIPT_DIR / "tend.py"
     harvest = SCRIPT_DIR / "harvest.py"
     print(f"\n{BLUE}⚙{RESET} Next:")
     if target.resolve() != cwd.resolve():
         print(f"\t{GREY}◦{RESET} cd {target}")
-    print(f"\t{GREY}◦{RESET} {seed}")
-    print(f"\t{GREY}◦{RESET} {grow}   # if seed.py wrote assets.json")
+    print(f"\t{GREY}◦{RESET} {sow}")
+    print(f"\t{GREY}◦{RESET} {tend}   # if sow.py wrote assets.json")
     print(f"\t{GREY}◦{RESET} {harvest}")
 
 

@@ -9,7 +9,7 @@ Reuses the 'default' service already built by harvest.py / docker-compose
 build (see containers.json: a plain, template-less service) — it never
 builds anything itself. Its generated services/default/docker-compose.yaml
 already carries the standard security hardening (cap_drop, read_only,
-tmpfs, no-new-privileges) that seed.py applies to every generated service,
+tmpfs, no-new-privileges) that sow.py applies to every generated service,
 so pot.py only needs to override the volume mount and working directory:
 the current working directory is bind-mounted read-only at $HOME/$PROJECT,
 replacing the named 'root' volume for this one-off run.
