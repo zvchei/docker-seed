@@ -183,6 +183,19 @@ def find_template_dir(name: str) -> Path:
     sys.exit(1)
 
 
+def template_exists(name: str) -> bool:
+    """Return whether a local or repository template exists."""
+    return any(
+        (directory / name / "template.json").is_file()
+        for directory in (LOCAL_TEMPLATES_DIR, REPO_TEMPLATES_DIR)
+    )
+
+
+def is_abstract(name: str) -> bool:
+    """Return whether a container entry is merge-only."""
+    return name.startswith("@")
+
+
 def load_template(name: str) -> Template:
     tpl_dir: Path = find_template_dir(name)
     manifest_path: Path = tpl_dir / "template.json"
@@ -270,6 +283,126 @@ def merge_templates(templates: list[Template]) -> Merged:
     return merged
 
 
+def merge_merged(existing: Merged, value: Merged) -> Merged:
+    """Merge one fully resolved configuration onto another."""
+    result: Merged = copy.deepcopy(existing)
+    for key, field_value in value.items():
+        if key == "extended_service":
+            continue
+        method: str = "replace" if key in LAST_WINS_ARRAY_FIELDS else "merge"
+        result[key] = merge_field(
+            result.get(key), field_value, key=key, method=method
+        )
+    return result
+
+
+def find_container(
+    name: str, all_containers: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """Return a containers.json entry by name."""
+    return next((container for container in all_containers if container["name"] == name), None)
+
+
+def resolve_merge_source(
+    reference: Any,
+    container_name: str,
+    all_containers: list[dict[str, Any]],
+) -> tuple[str, str]:
+    """Resolve a templates[] item to ('template'|'service', name)."""
+    if not isinstance(reference, str) or not reference:
+        print("Error: 'templates' entries must be non-empty strings.")
+        sys.exit(1)
+
+    qualifier, separator, qualified_name = reference.partition(":")
+    if separator and qualifier in {"template", "service"}:
+        if not qualified_name:
+            print(f"Error: template reference '{reference}' has no name.")
+            sys.exit(1)
+        if qualifier == "template":
+            if not template_exists(qualified_name):
+                print(f"Error: template '{qualified_name}' does not exist.")
+                sys.exit(1)
+            return "template", qualified_name
+
+        if find_container(qualified_name, all_containers) is None:
+            print(
+                f"Error: service '{qualified_name}' does not exist in containers.json."
+            )
+            sys.exit(1)
+        return "service", qualified_name
+
+    if separator:
+        print(
+            f"Error: unknown templates qualifier '{qualifier}:' in '{reference}'. "
+            "Use 'template:<name>' or 'service:<name>'."
+        )
+        sys.exit(1)
+
+    has_template: bool = template_exists(reference)
+    has_service: bool = find_container(reference, all_containers) is not None
+
+    # Existing configurations commonly give a service and its primary template
+    # the same name. Such a service cannot merge itself, so preserve template lookup.
+    if reference == container_name:
+        if has_template:
+            return "template", reference
+        print(
+            f"Error: service '{container_name}' cannot use itself as a template. "
+            f"Use a template name or qualify another service as 'service:<name>'."
+        )
+        sys.exit(1)
+
+    if has_template and has_service:
+        print(
+            f"Error: '{reference}' names both a template and a service. "
+            f"Use 'template:{reference}' or 'service:{reference}'."
+        )
+        sys.exit(1)
+    if has_service:
+        return "service", reference
+    if has_template:
+        return "template", reference
+
+    print(
+        f"Error: '{reference}' is neither a template nor a service in containers.json."
+    )
+    sys.exit(1)
+
+
+def merge_container_sources(
+    container: dict[str, Any],
+    all_containers: list[dict[str, Any]],
+    chain: list[str],
+) -> Merged:
+    """Merge template and service references in declared order."""
+    references: Any = container.get("templates", [])
+    if not isinstance(references, list):
+        print(f"Error: container '{container['name']}' field 'templates' must be a list.")
+        sys.exit(1)
+
+    merged: Merged = {"root_fragments": [], "user_fragments": []}
+    seen_templates: set[str] = set()
+    for reference in references:
+        source_type, source_name = resolve_merge_source(
+            reference, container["name"], all_containers
+        )
+        if source_type == "template":
+            resolved_names = resolve_templates([source_name])
+            new_names = [name for name in resolved_names if name not in seen_templates]
+            seen_templates.update(new_names)
+            source = merge_templates([load_template(name) for name in new_names])
+        else:
+            source_container = find_container(source_name, all_containers)
+            assert source_container is not None
+            source = build_merged_for_container(
+                source_container,
+                all_containers,
+                chain + [container["name"]],
+            )
+        merged = merge_merged(merged, source)
+    return merged
+
+
 def generate_dockerfile(merged: Merged) -> str:
     lines: list[str] = [
         "FROM localhost/base",
@@ -354,10 +487,21 @@ def validate_extends(containers: list[dict[str, Any]]) -> None:
             return
         parent = container.get("extends")
         if parent:
+            if is_abstract(name):
+                print(
+                    f"Error: abstract service '{name}' cannot extend another service."
+                )
+                sys.exit(1)
             if parent not in names:
                 print(
                     f"Error: container '{name}' extends '{parent}', "
                     f"which does not exist in containers.json."
+                )
+                sys.exit(1)
+            if is_abstract(parent):
+                print(
+                    f"Error: container '{name}' cannot extend abstract service "
+                    f"'{parent}'. Add it to 'templates' instead."
                 )
                 sys.exit(1)
             check(parent, chain + [name])
@@ -372,13 +516,16 @@ def build_merged_for_container(
     all_containers: list[dict[str, Any]],
     _chain: list[str] | None = None,
 ) -> Merged:
-    """Return the fully-resolved merged dict for a container, handling 'extends' chains."""
+    """Return a container's fully resolved templates and service references."""
     if _chain is None:
         _chain = []
 
     name: str = container["name"]
     if name in _chain:
-        print(f"Error: circular 'extends' detected: {' -> '.join(_chain + [name])}")
+        print(
+            f"Error: circular service reference detected: "
+            f"{' -> '.join(_chain + [name])}"
+        )
         sys.exit(1)
 
     parent_name: str | None = container.get("extends")
@@ -427,11 +574,9 @@ def build_merged_for_container(
 
         return merged
 
-    # Regular container: template-based resolution.
-    template_names: list[str] = container.get("templates", [])
-    resolved_names = resolve_templates(template_names)
-    templates_list: list[Template] = [load_template(t) for t in resolved_names]
-    merged = merge_templates(templates_list)
+    # Regular container: merge filesystem templates and service configurations
+    # in exactly the order listed.
+    merged = merge_container_sources(container, all_containers, _chain)
 
     container_main = container.get("main")
     if container_main is not None:
@@ -646,6 +791,9 @@ def main() -> None:
 
     for container in containers:
         name: str = container["name"]
+        if is_abstract(name):
+            print(f"\n\033[33m⊘\033[0m  Skipping {name} (abstract service)")
+            continue
         if not container.get("enabled", True):
             print(f"\n\033[33m⊘\033[0m  Skipping {name} (enabled: false)")
             continue
@@ -655,8 +803,12 @@ def main() -> None:
         if is_extends:
             print(f"\n\033[34m⚙\033[0m  Generating {name} (extends: {container['extends']})")
         else:
-            resolved_names = resolve_templates(container.get("templates", []))
-            label = ", ".join(resolved_names) if resolved_names else "(no templates)"
+            references: Any = container.get("templates", [])
+            if not isinstance(references, list):
+                print(f"Error: container '{name}' field 'templates' must be a list.")
+                sys.exit(1)
+            label = ", ".join(str(reference) for reference in references)
+            label = label or "(no templates)"
             print(f"\n\033[34m⚙\033[0m  Generating {name} from: {label}")
 
         merged: Merged = build_merged_for_container(container, containers)

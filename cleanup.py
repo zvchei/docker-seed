@@ -66,7 +66,11 @@ def compose_project_name(work_dir: Path, env: dict[str, str]) -> str:
 
 
 def declared_service_names(containers: list[dict[str, Any]]) -> set[str]:
-    return {container["name"] for container in containers}
+    return {
+        container["name"]
+        for container in containers
+        if not container["name"].startswith("@")
+    }
 
 
 def existing_service_dirs(services_dir: Path) -> set[str]:
@@ -81,7 +85,14 @@ def existing_service_dirs(services_dir: Path) -> set[str]:
 
 def image_service_names(containers: list[dict[str, Any]]) -> set[str]:
     """Return service names whose project-prefixed Docker images should be kept."""
-    return {"base", *(container["name"] for container in containers)}
+    return {
+        "base",
+        *(
+            container["name"]
+            for container in containers
+            if not container["name"].startswith("@")
+        ),
+    }
 
 
 def volume_names_from_compose(path: Path) -> set[str]:

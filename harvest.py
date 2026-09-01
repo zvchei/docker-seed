@@ -46,7 +46,11 @@ RESET = "\033[0m"
 def get_enabled_services(containers_file: Path) -> list[str]:
     with open(containers_file) as f:
         containers: list[dict[str, Any]] = json.load(f)
-    return [c["name"] for c in containers if c.get("enabled", True)]
+    return [
+        c["name"]
+        for c in containers
+        if c.get("enabled", True) and not c["name"].startswith("@")
+    ]
 
 
 # ---------------------------------------------------------------------------

@@ -15,7 +15,7 @@
         "name": "code",
         "enabled": true,
         "templates": [
-            "git",
+            "template:git",
             "copilot-cli",
             "vscode"
         ],

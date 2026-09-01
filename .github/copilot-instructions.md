@@ -55,12 +55,17 @@ When `sow.py` merges multiple templates for a container:
 - **Dicts** (e.g. `env_vars`, `build_args`) → merged; later template keys overwrite earlier ones
 - **`cmd` and `entrypoint`** → last-wins (not accumulated)
 - **`requires`** in `template.json` → dependency resolution; required templates are resolved and prepended automatically
+- **Service references** in `containers.json` `templates` → merge resolved settings without reusing the referenced image
+- **Direct container fields** → applied after all ordered `templates` entries
 
 ## containers.json conventions
 
 - Use `_` (not `-`) in container names — Docker Compose derives volume names from the name
+- Prefix a name with `@` for an abstract merge source that is never generated
+- `templates` may reference templates or services; use `template:<name>` or `service:<name>` when ambiguous
 - Set `"enabled": false` to skip a service without deleting `services/<name>/`
 - Use `"extends": "<name>"` to reuse another service's image and settings without rebuilding
+- Abstract (`@`) services cannot use or be targets of `extends`
 - Use `"main": "<template>"` to select which template's `cmd` wins as the default command
 - Command resolution order: explicit `cmd` > `main` template's `cmd` > last template with a `cmd`
 

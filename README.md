@@ -6,7 +6,7 @@ DockerSeed is a lightweight, Docker-based environment for secure development in 
 
 ## How services get into the tree
 
-Add or edit entries in `containers.json`, optionally add project-specific templates under `./templates/`, then run `sow.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them.
+Add or edit entries in `containers.json`, optionally add project-specific templates under `./templates/`, then run `sow.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them. Names beginning with `@` are abstract merge sources and are never generated.
 
 ## Quick start
 
@@ -142,7 +142,7 @@ Each entry combines one or more templates into one service:
 |-------|------|----------|-------------|
 | `name` | `string` | yes | Service name (use `_` not `+` in names). |
 | `enabled` | `boolean` | no | If `false`, this entry is skipped (default: `true`). |
-| `templates` | `string[]` | yes | Templates to merge; order matters. |
+| `templates` | `string[]` | no | Templates or service configurations to merge; order matters. Use `template:<name>` or `service:<name>` to resolve an ambiguous name. |
 | `extends` | `string` | no | Extend an existing service by name, reusing its image and settings; can be overridden by fields in this entry. |
 | `main` | `string` | no | Name of the template whose `cmd` is used as the default (see below). |
 | `cmd` | `string[]` | no | Explicit command override, e.g. `["node", "server.js"]`. |
@@ -164,6 +164,46 @@ Each entry combines one or more templates into one service:
 3. **`cmd` set** - explicit array always overrides any default, e.g. `{ "cmd": ["node", "server.js"] }`.
 
 ## Advanced features
+
+### Abstract services and service composition
+
+A name beginning with `@` defines an abstract service. Abstract services are
+available as merge sources but never generate a container, image, Dockerfile,
+or Compose service:
+
+```json
+[
+  {
+    "name": "@shared",
+    "env_vars": {
+      "SHARED_SETTING": "true"
+    }
+  },
+  {
+    "name": "python",
+    "templates": ["@shared", "python"]
+  }
+]
+```
+
+Items in `templates` are merged from left to right, then fields declared
+directly on the service are applied last. An item can refer to either a
+template directory or another service in `containers.json`.
+
+When both namespaces contain the same name, qualify the reference:
+
+```json
+"templates": ["service:shared", "template:python"]
+```
+
+An unqualified reference matching the current service's own name remains a
+template reference, preserving configurations such as
+`{"name": "python", "templates": ["python"]}`. A template manifest's
+`requires` entries continue to refer only to template directories.
+
+Use service composition to merge configuration while building a new image.
+Use `extends` when the child should reuse an existing service's image.
+Abstract (`@`) services cannot use or be targets of `extends`.
 
 ### Service extension
 

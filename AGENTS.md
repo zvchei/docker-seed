@@ -76,19 +76,25 @@ Local `./templates/<name>/` overrides a same-named template under the repository
 
 ### Merge rules
 
-The `containers.json` file defines services as lists of templates. When `sow.py` is started, it resolves the templates for each service and merges their properties according to the rules below to generate the final Dockerfiles and compose files.
+The `containers.json` file defines services as ordered lists of template or service references. When `sow.py` is started, it resolves each source and merges its properties to generate the final Dockerfiles and compose files.
 
 When `sow.py` merges multiple templates for a container:
 - **Lists** (e.g. `apt_packages`, `ports`, `volumes`) → deduplicated union; order preserved
 - **Dicts** (e.g. `env_vars`, `build_args`) → merged; later template keys overwrite earlier ones
 - **`requires`** in `template.json` → dependency resolution; required templates are resolved and prepended automatically
+- **Service references** in `containers.json` `templates` → merge the referenced service's fully resolved configuration without reusing its image
+- **Ambiguous names** → qualify as `template:<name>` or `service:<name>`; a service's own unqualified name resolves to its same-named template
+- **Direct container fields** → applied last, after all entries in `templates`
 - All others as described above.
 
 ## containers.json conventions
 
 - Use `_` (not `-`) in container names — Docker Compose derives volume names from the name
+- Prefix a name with `@` to define an abstract merge source that never generates a container, image, or compose include
+- `templates` entries can refer to template directories or services and are merged in order; abstract services are commonly referenced here
 - Set `"enabled": false` to skip a service without deleting `services/<name>/`
 - Use `"extends": "<name>"` to reuse another service's image and settings without rebuilding
+- Abstract (`@`) services cannot use or be targets of `extends`
 - Use `"main": "<template>"` to select which template's `cmd` wins as the default command
 - Command resolution order: explicit `cmd` > `main` template's `cmd` > last template with a `cmd`
 - `"apt_packages"`, `"volumes"`, `"env_vars"`, and `"build_args"` can be specified directly on a container to add or override values from its templates (`apt_packages` is a deduplicated union; the rest are merged dicts where container keys win)

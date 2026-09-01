@@ -1,5 +1,11 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
+import cleanup
+import harvest
 import sow
 
 
@@ -70,6 +76,167 @@ class SeedContainerVolumeOverrideTests(unittest.TestCase):
         compose = sow.generate_compose("svc", merged)
         self.assertIn("- hf_cache:/home/${CONTAINER_USER}/.cache/huggingface", compose)
         self.assertIn("    hf_cache:", compose)
+
+
+class SeedServiceTemplateTests(unittest.TestCase):
+    def test_service_reference_merges_before_following_template_and_child(self) -> None:
+        containers = [
+            {
+                "name": "@shared",
+                "templates": [],
+                "apt_packages": ["jq"],
+                "env_vars": {"ORDER": "parent", "SHARED": "yes"},
+            },
+            {
+                "name": "consumer",
+                "templates": ["service:@shared", "template:python"],
+                "env_vars": {"ORDER": "child"},
+            },
+        ]
+
+        merged = sow.build_merged_for_container(containers[1], containers)
+
+        self.assertEqual(merged["apt_packages"], ["jq", "python3-venv", "python3-dev"])
+        self.assertEqual(merged["env_vars"]["SHARED"], "yes")
+        self.assertEqual(merged["env_vars"]["ORDER"], "child")
+
+    def test_service_references_are_applied_in_order(self) -> None:
+        containers = [
+            {"name": "@first", "templates": [], "env_vars": {"ORDER": "first"}},
+            {"name": "@second", "templates": [], "env_vars": {"ORDER": "second"}},
+            {
+                "name": "consumer",
+                "templates": ["@first", "@second"],
+            },
+        ]
+
+        merged = sow.build_merged_for_container(containers[2], containers)
+
+        self.assertEqual(merged["env_vars"]["ORDER"], "second")
+
+    def test_own_service_name_prefers_same_named_template(self) -> None:
+        container = {"name": "python", "templates": ["python"]}
+
+        merged = sow.build_merged_for_container(container, [container])
+
+        self.assertIn("python3-venv", merged["apt_packages"])
+
+    def test_ambiguous_unqualified_reference_requires_qualifier(self) -> None:
+        containers = [
+            {"name": "python", "templates": []},
+            {"name": "consumer", "templates": ["python"]},
+        ]
+
+        with self.assertRaises(SystemExit):
+            sow.build_merged_for_container(containers[1], containers)
+
+    def test_qualified_references_select_service_or_template(self) -> None:
+        containers = [
+            {
+                "name": "python",
+                "templates": [],
+                "env_vars": {"SOURCE": "service"},
+            },
+            {
+                "name": "service_consumer",
+                "templates": ["service:python"],
+            },
+            {
+                "name": "template_consumer",
+                "templates": ["template:python"],
+            },
+        ]
+
+        service_merged = sow.build_merged_for_container(containers[1], containers)
+        template_merged = sow.build_merged_for_container(containers[2], containers)
+
+        self.assertEqual(service_merged["env_vars"]["SOURCE"], "service")
+        self.assertIn("python3-venv", template_merged["apt_packages"])
+
+    def test_service_reference_does_not_reuse_image(self) -> None:
+        containers = [
+            {"name": "base", "templates": []},
+            {"name": "derived", "extends": "base"},
+            {"name": "consumer", "templates": ["service:derived"]},
+        ]
+
+        merged = sow.build_merged_for_container(containers[2], containers)
+
+        self.assertNotIn("extended_service", merged)
+
+    def test_circular_service_reference_raises(self) -> None:
+        containers = [
+            {"name": "@a", "templates": ["service:@b"]},
+            {"name": "@b", "templates": ["service:@a"]},
+        ]
+
+        with self.assertRaises(SystemExit):
+            sow.build_merged_for_container(containers[0], containers)
+
+    def test_extends_cannot_target_abstract_service(self) -> None:
+        containers = [
+            {"name": "@base", "templates": []},
+            {"name": "consumer", "extends": "@base"},
+        ]
+
+        with self.assertRaises(SystemExit):
+            sow.validate_extends(containers)
+
+    def test_abstract_service_cannot_extend(self) -> None:
+        containers = [
+            {"name": "base", "templates": []},
+            {"name": "@consumer", "extends": "base"},
+        ]
+
+        with self.assertRaises(SystemExit):
+            sow.validate_extends(containers)
+
+    def test_abstract_service_is_not_generated(self) -> None:
+        containers = [
+            {"name": "@shared", "templates": []},
+            {"name": "consumer", "templates": ["@shared"]},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            work_dir = Path(tmp)
+            containers_file = work_dir / "containers.json"
+            containers_file.write_text(json.dumps(containers))
+            services_dir = work_dir / "services"
+
+            with (
+                patch.object(sow, "CONTAINERS_FILE", containers_file),
+                patch.object(sow, "SERVICES_DIR", services_dir),
+                patch.object(sow, "ASSETS_FILE", work_dir / "assets.json"),
+                patch.object(sow, "sync_common"),
+                patch.object(sow, "sync_env"),
+            ):
+                sow.main()
+
+            self.assertFalse((services_dir / "@shared").exists())
+            self.assertTrue((services_dir / "consumer" / "Dockerfile").is_file())
+
+    def test_harvest_omits_abstract_services(self) -> None:
+        containers = [
+            {"name": "@shared"},
+            {"name": "enabled"},
+            {"name": "disabled", "enabled": False},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            containers_file = Path(tmp) / "containers.json"
+            containers_file.write_text(json.dumps(containers))
+
+            self.assertEqual(
+                harvest.get_enabled_services(containers_file),
+                ["enabled"],
+            )
+
+    def test_cleanup_omits_abstract_services_and_images(self) -> None:
+        containers = [{"name": "@shared"}, {"name": "concrete"}]
+
+        self.assertEqual(cleanup.declared_service_names(containers), {"concrete"})
+        self.assertEqual(
+            cleanup.image_service_names(containers),
+            {"base", "concrete"},
+        )
 
 
 class SeedContainerAptPackagesOverrideTests(unittest.TestCase):
