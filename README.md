@@ -12,7 +12,14 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
 
 1. **Clone** this repository (or point at an existing clone of the scripts).
 
-2. In your project directory (with a `containers.json`), **generate services**:
+2. **Scaffold** a project directory (`till.py` writes `containers.json`, `.env`, and related files; it never overwrites existing files):
+
+   ```bash
+   /path/to/docker-seed/till.py              # current directory
+   /path/to/docker-seed/till.py my-project   # create/use ./my-project
+   ```
+
+3. In your project directory, **generate services**:
 
    ```bash
    /path/to/docker-seed/seed.py
@@ -20,19 +27,19 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
    ./seed.py
    ```
 
-3. **Manage assets** (optional, only if `seed.py` wrote an `assets.json`):
+4. **Manage assets** (optional, only if `seed.py` wrote an `assets.json`):
 
    ```bash
    /path/to/docker-seed/grow.py
    ```
 
-4. **Bake the stack** (syncs `common/`, regenerates root `docker-compose.yaml`, walks through `.env`, and can run `docker-compose build`):
+5. **Bake the stack** (syncs `common/`, regenerates root `docker-compose.yaml`, walks through `.env`, and can run `docker-compose build`):
 
    ```bash
    /path/to/docker-seed/harvest.py
    ```
 
-5. **Run a service** (pick a name from `containers.json`):
+6. **Run a service** (pick a name from `containers.json`):
 
    ```bash
    docker-compose up <service_name>

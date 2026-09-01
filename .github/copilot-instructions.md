@@ -9,6 +9,8 @@ DockerSeed is a **code-generation tool**, not a service itself. It generates Doc
 Scripts operate on the **current working directory** (`Path.cwd()`), not the script directory.
 
 ```
+./till.py          # scaffolds containers.json, .env, and related files in cwd
+                   # (or in a given directory, created after confirmation)
 ./seed.py          # reads ./containers.json; generates ./services/<name>/…
 ./grow.py          # (optional) downloads ./assets.json → ./assets/
 ./harvest.py       # regenerates ./docker-compose.yaml, prompts for .env values,
