@@ -644,6 +644,18 @@ def build_merged_for_container(
     return merged
 
 
+def compose_scalar(value: Any) -> str:
+    """Render a value for compose, quoting it when YAML would not read it back as text.
+
+    Values such as "[::1]:7000" would otherwise be parsed as a flow sequence.
+    """
+    if not isinstance(value, str):
+        return str(value)
+    if value == "" or value[0] in "[{*&!|>%@`\"'#" or ": " in value or " #" in value:
+        return json.dumps(value)
+    return value
+
+
 def generate_compose(name: str, merged: Merged) -> str:
     indent: str = "    "
     lines: list[str] = ["services:"]
@@ -720,7 +732,10 @@ def generate_compose(name: str, merged: Merged) -> str:
 
         for arg_name, compose_value in merged.get("build_args", {}).items():
             if arg_name not in standard_build_args:
-                lines.append(f"{indent}{indent}{indent}{indent}{arg_name}: {compose_value}")
+                lines.append(
+                    f"{indent}{indent}{indent}{indent}{arg_name}: "
+                    f"{compose_scalar(compose_value)}"
+                )
 
         lines.append(f"{indent}{indent}pull_policy: never")
 
@@ -733,7 +748,9 @@ def generate_compose(name: str, merged: Merged) -> str:
     if env_vars:
         lines.append(f"{indent}{indent}environment:")
         for var_name, var_value in env_vars.items():
-            lines.append(f"{indent}{indent}{indent}{var_name}: {var_value}")
+            lines.append(
+                f"{indent}{indent}{indent}{var_name}: {compose_scalar(var_value)}"
+            )
 
     network_mode: str | None = merged.get("network_mode")
     if network_mode:
