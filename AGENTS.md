@@ -15,6 +15,8 @@ Scripts operate on the **current working directory** (`Path.cwd()`), not the dir
 ./tend.py          # (optional) downloads ./assets.json → ./assets/
 ./harvest.py       # regenerates ./docker-compose.yaml, prompts for .env values,
                    # optionally runs docker-compose build
+./transfer.py      # copy a directory into or out of a named volume
+                   # (service need not be running; direction from args)
 ```
 
 Built-in templates and the shared `common/` tree live in the DockerSeed repository. When the working directory is not the repo, `sow.py` / `harvest.py` sync `common/` into `./common/`. Template lookup prefers `./templates/<name>/` over `<repo>/templates/<name>/`. `sow.py` also copies the repo's default `.env` into `./.env` if the working directory doesn't already have one.

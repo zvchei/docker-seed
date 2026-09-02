@@ -2,7 +2,7 @@
 
 DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `./harvest.py`.
 
-`sow.py`, `tend.py`, `harvest.py`, and `cleanup.py` all operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
+`sow.py`, `tend.py`, `harvest.py`, `cleanup.py`, and `transfer.py` all operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
 
 ## How services get into the tree
 
@@ -150,7 +150,7 @@ Each entry combines one or more templates into one service:
 | `ports` | `string[]` | no | Port mappings override (overrides template ports). |
 | `init` | `boolean` | no | Run an init process. |
 | `restart` | `string` | no | Docker restart policy: `"no"`, `"always"`, `"unless-stopped"`, or `"on-failure"`. |
-| `network_mode` | `string` | no | Docker network mode: `"bridge"`, `"host"`, `"none"`, or a network name. |
+| `network_mode` | `string` | no | Docker network mode: `"bridge"`, `"host"`, `"none"`, a network name, or `"service:<name>"` to share another service's network namespace. |
 | `workdir` | `string` | no | Working directory for the container. |
 | `interactive` | `boolean` | no | Enable interactive mode and allocate a pseudo-TTY (for shell-like containers). |
 | `env_vars` | `{name: value}` | no | Environment variables. |
@@ -223,6 +223,19 @@ This copies the image, volumes, ports, and other settings from `my-container`. Y
 Use **`tend.py`** to download asset files listed in `./assets.json` into `./assets/`. These files can then be copied into containers during build.
 
 Use **`harvest.py`** to orchestrate setup, compose generation, environment prompts, and optional image builds.
+
+### Copy directories into or out of volumes (`transfer.py`)
+
+Named volumes persist even when a service is not running. `transfer.py` copies a host directory into a volume (import) or the other way (export) using a one-shot helper container. Direction is inferred from the arguments:
+
+```bash
+./transfer.py ../app python:root:src    # import: host → volume
+./transfer.py python:root:src ../app    # export: volume → host
+```
+
+The spec is `<service>:<volume>[:<path>]`. `volume` is the Compose key (`root`, `cache`, or a container-specific name such as `chrome_local`). `<path>` is inside that volume: omitted or `.` for the volume root, a relative path, or an absolute container path under the volume mount.
+
+If the target directory already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing.
 
 ## License
 
