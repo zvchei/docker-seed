@@ -207,7 +207,6 @@ class SeedServiceTemplateTests(unittest.TestCase):
                 patch.object(sow, "SERVICES_DIR", services_dir),
                 patch.object(sow, "ASSETS_FILE", work_dir / "assets.json"),
                 patch.object(sow, "sync_common"),
-                patch.object(sow, "sync_env"),
             ):
                 sow.main()
 

@@ -68,7 +68,11 @@ class TillWriteProjectTests(unittest.TestCase):
             containers = json.loads((target / "containers.json").read_text())
             self.assertEqual(containers[0]["name"], "default")
             self.assertIn("PROJECT=demo", (target / ".env").read_text())
+            self.assertIn(".env", (target / ".gitignore").read_text())
             self.assertTrue((target / "secrets" / "ssh" / "README").is_file())
+
+    def test_env_src_points_at_template(self) -> None:
+        self.assertEqual(till.ENV_SRC.name, ".env.template")
 
     def test_env_fallback_when_source_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

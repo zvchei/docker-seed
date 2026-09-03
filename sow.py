@@ -5,8 +5,7 @@ by combining feature templates defined in templates/.
 
 Operates on the current working directory: reads containers.json from cwd,
 writes services/ and assets.json there, and prefers ./templates over the
-repository templates. Syncs common/ into cwd when working outside the repo,
-and seeds a default .env into cwd if one doesn't already exist there.
+repository templates. Syncs common/ into cwd when working outside the repo.
 
 Each entry in containers.json may set "enabled": false to skip generating
 that service (defaults to true when omitted).
@@ -28,8 +27,6 @@ CONTAINERS_FILE: Path = WORK_DIR / "containers.json"
 ASSETS_FILE: Path = WORK_DIR / "assets.json"
 COMMON_SRC: Path = SCRIPT_DIR / "common"
 COMMON_DST: Path = WORK_DIR / "common"
-ENV_SRC: Path = SCRIPT_DIR / ".env"
-ENV_DST: Path = WORK_DIR / ".env"
 
 type Manifest = dict[str, Any]
 type Fragment = tuple[str, str]
@@ -152,18 +149,6 @@ def sync_common() -> None:
         shutil.rmtree(COMMON_DST)
     shutil.copytree(COMMON_SRC, COMMON_DST)
     print(f"\033[32m✓\033[0m  Synced common/ into {COMMON_DST}")
-
-
-def sync_env() -> None:
-    """Seed a default .env into the working directory when one is missing."""
-    if ENV_SRC.resolve() == ENV_DST.resolve():
-        return
-    if ENV_DST.exists():
-        return
-    if not ENV_SRC.is_file():
-        return
-    shutil.copyfile(ENV_SRC, ENV_DST)
-    print(f"\033[32m✓\033[0m  Copied default .env into {ENV_DST}")
 
 
 def find_template_dir(name: str) -> Path:
@@ -792,7 +777,6 @@ def main() -> None:
         sys.exit(1)
 
     sync_common()
-    sync_env()
 
     with open(CONTAINERS_FILE) as f:
         containers: list[dict[str, Any]] = json.load(f)

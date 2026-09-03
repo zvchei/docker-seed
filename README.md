@@ -2,7 +2,7 @@
 
 DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `./harvest.py`.
 
-`sow.py`, `tend.py`, `harvest.py`, `cleanup.py`, and `transfer.py` all operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
+`sow.py`, `tend.py`, `harvest.py`, `configure.py`, `cleanup.py`, and `transfer.py` all operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
 
 ## How services get into the tree
 
@@ -12,7 +12,7 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
 
 1. **Clone** this repository (or point at an existing clone of the scripts).
 
-2. **Scaffold** a project directory (`till.py` writes `containers.json`, `.env`, and related files; it never overwrites existing files):
+2. **Scaffold** a project directory (`till.py` writes `containers.json`, `.env` from `.env.template`, and related files, then runs `configure.py`; it never overwrites existing files):
 
    ```bash
    /path/to/docker-seed/till.py              # current directory
@@ -33,10 +33,16 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
    /path/to/docker-seed/tend.py
    ```
 
-5. **Bake the stack** (syncs `common/`, regenerates root `docker-compose.yaml`, walks through `.env`, and can run `docker-compose build`):
+5. **Bake the stack** (syncs `common/`, regenerates root `docker-compose.yaml`; if `.env` is missing, seeds it from `.env.template` and runs `configure.py`; can run `docker-compose build`):
 
    ```bash
    /path/to/docker-seed/harvest.py
+   ```
+
+   To walk through `.env` again later:
+
+   ```bash
+   /path/to/docker-seed/configure.py
    ```
 
 6. **Run a service** (pick a name from `containers.json`):
@@ -62,14 +68,15 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
 1. `./templates/<name>/` in the current working directory (wins on name clash)
 2. `<docker-seed>/templates/<name>/` from the repository that contains the script
 
-`sow.py` / `harvest.py` also sync the repo’s `common/` directory into `./common/` when the working directory is not the repo itself, so local builds stay self-contained. `sow.py` also copies the repo's default `.env` into `./.env` when the working directory doesn't already have one.
+`sow.py` / `harvest.py` also sync the repo’s `common/` directory into `./common/` when the working directory is not the repo itself, so local builds stay self-contained. The repo ships `.env.template` only; `till.py` / `harvest.py` copy it to `./.env` when missing (`harvest.py` runs `configure.py` only in that case).
 
 **Workflow:**
 
 1. Edit **`containers.json`** in the project directory - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
 2. Run **`sow.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry; writes `assets.json` when needed.
 3. **(Optional)** Run **`tend.py`** - download asset files listed in `assets.json` into `./assets/`.
-4. Run **`harvest.py`** - regenerates the root `docker-compose.yaml`, walks through `.env`, and optionally builds images.
+4. Run **`harvest.py`** - regenerates the root `docker-compose.yaml`; seeds and configures `.env` only if it was missing; optionally builds images.
+5. **(Optional)** Run **`configure.py`** anytime to review or update `.env` values.
 
 ### Template layout
 
@@ -222,7 +229,7 @@ This copies the image, volumes, ports, and other settings from `my-container`. Y
 
 Use **`tend.py`** to download asset files listed in `./assets.json` into `./assets/`. These files can then be copied into containers during build.
 
-Use **`harvest.py`** to orchestrate setup, compose generation, environment prompts, and optional image builds.
+Use **`harvest.py`** to orchestrate setup, compose generation, optional first-time `.env` seeding/configure, and optional image builds. Use **`configure.py`** to review or update `.env` anytime.
 
 ### Copy directories into or out of volumes (`transfer.py`)
 

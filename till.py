@@ -10,14 +10,17 @@ Writes the files needed to run sow.py, tend.py, and harvest.py.
 Never overwrites existing files: if any planned file already exists,
 the script reports them and exits without writing anything.
 If the target directory does not exist, the user is asked whether to create it.
+After writing .env from the repo's .env.template, runs configure.py.
 """
 
 import json
 import sys
 from pathlib import Path
 
+import configure
+
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
-ENV_SRC: Path = SCRIPT_DIR / ".env"
+ENV_SRC: Path = SCRIPT_DIR / ".env.template"
 
 RED = "\033[31m"
 GREEN = "\033[32m"
@@ -54,6 +57,7 @@ docker-compose.yaml
 common/
 assets/
 assets.json
+.env
 
 # Local secrets
 secrets/*
@@ -196,6 +200,10 @@ def main() -> None:
     print(f"{GREEN}✓{RESET} Initialized DockerSeed project in {target}")
     for rel in written:
         print(f"\t{GREY}◦{RESET} {rel}")
+
+    print()
+    configure.configure_env(target / ".env")
+
     print_next_steps(target, cwd)
 
 

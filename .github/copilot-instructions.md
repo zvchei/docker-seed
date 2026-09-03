@@ -9,15 +9,18 @@ DockerSeed is a **code-generation tool**, not a service itself. It generates Doc
 Scripts operate on the **current working directory** (`Path.cwd()`), not the script directory.
 
 ```
-./till.py          # scaffolds containers.json, .env, and related files in cwd
+./till.py          # scaffolds containers.json, .env (from .env.template), and
+                   # related files in cwd; then runs configure.py
                    # (or in a given directory, created after confirmation)
 ./sow.py          # reads ./containers.json; generates ./services/<name>/…
 ./tend.py          # (optional) downloads ./assets.json → ./assets/
-./harvest.py       # regenerates ./docker-compose.yaml, prompts for .env values,
+./harvest.py       # regenerates ./docker-compose.yaml; if .env is missing,
+                   # seeds it from .env.template and runs configure.py;
                    # optionally runs docker-compose build
+./configure.py     # interactively review/update .env (re-run anytime)
 ```
 
-Built-in templates come from the repo `templates/`; local `./templates/<name>/` overrides same-named built-ins. Outside the repo, `sow.py` / `harvest.py` sync `common/` into `./common/`. `sow.py` also copies the repo's default `.env` into `./.env` if the working directory doesn't already have one.
+Built-in templates come from the repo `templates/`; local `./templates/<name>/` overrides same-named built-ins. Outside the repo, `sow.py` / `harvest.py` sync `common/` into `./common/`. The repo ships `.env.template` only; `till.py` / `harvest.py` copy it to `./.env` when missing.
 
 ## Generated files — never edit manually
 
@@ -83,7 +86,7 @@ These are inlined into every `services/<name>/docker-compose.yaml` — not inher
 
 ## Environment variables
 
-`harvest.py` reads `.env` interactively, prompting to confirm or update each variable. Key variables consumed by all generated services:
+The DockerSeed repo ships `.env.template`. Project directories use a concrete `.env` (gitignored). `till.py` and `harvest.py` seed `.env` from the template when it is missing; `harvest.py` skips prompting when `.env` already exists. Run `./configure.py` anytime to walk through values again. Key variables consumed by all generated services:
 - `CONTAINER_USER`, `CONTAINER_USER_ID` — user identity inside containers
 - `PROJECT` — project directory name under `$HOME`
 - `GIT_AUTHOR_EMAIL`, `GIT_AUTHOR_NAME` — passed as build args to every service

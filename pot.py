@@ -27,7 +27,8 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
-ENV_FILE: Path = SCRIPT_DIR / ".env"
+WORK_DIR: Path = Path.cwd()
+ENV_FILE: Path = WORK_DIR / ".env"
 COMPOSE_FILE: Path = SCRIPT_DIR / "docker-compose.yaml"
 SERVICE_NAME: str = "default"
 
