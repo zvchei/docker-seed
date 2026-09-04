@@ -18,7 +18,7 @@ Scripts operate on the **current working directory** (`Path.cwd()`), not the dir
                    # seeds it from .env.template and runs configure.py;
                    # optionally runs docker-compose build
 ./configure.py     # interactively review/update .env (re-run anytime)
-./transfer.py      # copy a directory into or out of a named volume
+./transfer.py      # copy a directory or file into or out of a named volume
                    # (service need not be running; direction from args)
 ```
 

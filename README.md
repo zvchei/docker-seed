@@ -231,18 +231,31 @@ Use **`tend.py`** to download asset files listed in `./assets.json` into `./asse
 
 Use **`harvest.py`** to orchestrate setup, compose generation, optional first-time `.env` seeding/configure, and optional image builds. Use **`configure.py`** to review or update `.env` anytime.
 
-### Copy directories into or out of volumes (`transfer.py`)
+### Copy directories or files into or out of volumes (`transfer.py`)
 
-Named volumes persist even when a service is not running. `transfer.py` copies a host directory into a volume (import) or the other way (export) using a one-shot helper container. Direction is inferred from the arguments:
+Named volumes persist even when a service is not running. `transfer.py` copies a host directory or file into a volume (import) or the other way (export) using a one-shot helper container. Direction is inferred from the arguments:
 
 ```bash
-./transfer.py ../app python:root:src    # import: host → volume
-./transfer.py python:root:src ../app    # export: volume → host
+# Directory as directory — contents of ./dir become volume path dir/
+./transfer.py ./dir service:volume:dir
+
+# Directory into directory — contents of ./dir go into dest/
+./transfer.py ./dir service:volume:dest/
+
+# File as file — exact path (rename OK)
+./transfer.py ./file.ext service:volume:file.ext
+./transfer.py service:volume:file.ext ./path/to/other.ext
+
+# File into directory — trailing / forces dir even if missing
+./transfer.py ./file.ext service:volume:dest/
+./transfer.py service:volume:file.ext ./dest/
 ```
 
 The spec is `<service>:<volume>[:<path>]`. `volume` is the Compose key (`root`, `cache`, or a container-specific name such as `chrome_local`). `<path>` is inside that volume: omitted or `.` for the volume root, a relative path, or an absolute container path under the volume mount.
 
-If the target directory already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing.
+For files, destinations follow cp/rsync rules: if the destination exists as a directory (or is the volume root on import), the file is placed inside it under the same basename; otherwise the path is the destination file (parent directories are created as needed). A trailing slash forces directory semantics (e.g. `service:volume:dest/` → `dest/<basename>`).
+
+If the target already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing.
 
 ## License
 

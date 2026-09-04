@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-transfer.py — Copy a directory between the host and a service named volume.
+transfer.py — Copy a directory or file between the host and a service named volume.
 
 The target service does not need to be running. Transfer uses a one-shot
 alpine helper that mounts the Compose named volume.
 
 Usage:
-    ./transfer.py <host-dir> <service>:<volume>:<path>   # import: host → volume
-    ./transfer.py <service>:<volume>:<path> <host-dir>   # export: volume → host
+    ./transfer.py <host-path> <service>:<volume>:<path>   # import: host → volume
+    ./transfer.py <service>:<volume>:<path> <host-path>   # export: volume → host
 
 Direction is inferred from the arguments. A volume spec is service:volume
 or service:volume:path whose first field is a generated service name.
@@ -37,15 +37,38 @@ RESET = "\033[0m"
 
 USAGE = """\
 Usage:
-    ./transfer.py [--force] <host-dir> <service>:<volume>[:<path>]
-    ./transfer.py [--force] <service>:<volume>[:<path>] <host-dir>
+    ./transfer.py [--force] <host-path> <service>:<volume>[:<path>]
+    ./transfer.py [--force] <service>:<volume>[:<path>] <host-path>
 
-Import copies a host directory into a named volume. Export copies the
-other way. Direction is inferred from which argument is a volume spec.
+Import (host → volume) or export (volume → host); direction is inferred from
+which argument is a volume spec. The spec's first field must be a generated
+service (services/<name>/). <path> is inside that volume: omitted or . for the
+volume root, a relative path, or an absolute container path under the mount.
 
-A volume spec's first field must be a generated service (services/<name>/).
-<path> is inside that volume: omitted or . for the volume root, a relative
-path under it, or an absolute container path under the volume mount.
+Examples (import; reverse the args to export):
+
+  # Directory as directory — contents of ./dir become volume path dir/
+  ./transfer.py ./dir service:volume:dir
+
+  # Directory into directory — contents of ./dir go into dest/ (trailing / optional)
+  ./transfer.py ./dir service:volume:dest/
+
+  # File as file — copy/rename to an exact path
+  ./transfer.py ./file.ext service:volume:file.ext
+  ./transfer.py ./file.ext service:volume:path/to/other.ext
+
+  # File into directory — keep basename; trailing / forces dir even if missing
+  ./transfer.py ./file.ext service:volume:dest/
+  ./transfer.py ./file.ext service:volume          # into volume root
+
+  # Export file as file (including rename) / into directory
+  ./transfer.py service:volume:file.ext ./path/to/other.ext
+  ./transfer.py service:volume:file.ext ./dest/
+
+For files: if the destination exists as a directory (or is the volume root), or
+ends with /, the file is placed inside it under the same basename; otherwise the
+path is the destination file (parents are created as needed). Directory transfers
+always copy contents into the destination path. --force skips the overwrite prompt.
 """
 
 HELPER_SCRIPT = """\
@@ -54,6 +77,27 @@ if [ "$XFER_REL" = "." ]; then
   DEST=/xfer
 else
   DEST=/xfer/$XFER_REL
+fi
+
+if [ "$XFER_KIND" = file ]; then
+  if [ "$XFER_MODE" = import ]; then
+    if [ "$XFER_OVERWRITE" = 1 ]; then
+      rm -f "$DEST"
+    fi
+    mkdir -p "$(dirname "$DEST")"
+    cp "/host/$XFER_NAME" "$DEST"
+    chown "$XFER_UID:$XFER_GID" "$DEST"
+  else
+    if [ ! -f "$DEST" ]; then
+      echo "Source path does not exist in the volume or is not a file: $XFER_REL" >&2
+      exit 1
+    fi
+    if [ "$XFER_OVERWRITE" = 1 ]; then
+      rm -f "/host/$XFER_NAME"
+    fi
+    cp "$DEST" "/host/$XFER_NAME"
+  fi
+  exit 0
 fi
 
 if [ "$XFER_MODE" = import ]; then
@@ -185,7 +229,7 @@ def detect_direction(
     service_names: set[str],
     cwd: Path,
 ) -> tuple[str, str, str]:
-    """Return (direction, host_dir, spec) where direction is import or export."""
+    """Return (direction, host_path, spec) where direction is import or export."""
     kind_a = classify_arg(first, service_names, cwd)
     kind_b = classify_arg(second, service_names, cwd)
 
@@ -224,6 +268,12 @@ def resolve_volume_key(
     )
 
 
+def path_implies_directory(path: str) -> bool:
+    """True when a trailing slash marks the path as a directory destination."""
+    stripped = path.strip()
+    return bool(stripped) and stripped.endswith("/")
+
+
 def volume_relative_path(internal: str, mount: str) -> str:
     """Map a volume-internal path to a path relative to the volume root."""
     internal = internal.strip() or "."
@@ -250,6 +300,35 @@ def volume_relative_path(internal: str, mount: str) -> str:
     if rel == ".." or rel.startswith("../"):
         raise ValueError(f"path '{internal}' escapes the volume root")
     return rel
+
+
+def resolve_import_file_rel(rel: str, basename: str, *, dest_is_dir: bool) -> str:
+    """Resolve the volume-relative destination for a file import."""
+    if rel == "." or dest_is_dir:
+        if rel == ".":
+            return basename
+        return posixpath.normpath(posixpath.join(rel, basename))
+    return rel
+
+
+def resolve_export_file_host(
+    host: Path,
+    volume_basename: str,
+    *,
+    dest_is_dir: bool = False,
+) -> Path:
+    """Resolve the host destination path for a file export."""
+    if dest_is_dir or (host.exists() and host.is_dir()):
+        return host / volume_basename
+    return host
+
+
+def ensure_parent_dir(path: Path) -> None:
+    """Create parent directories for a file path; fail if a parent is not a directory."""
+    parent = path.parent
+    if parent.exists() and not parent.is_dir():
+        raise ValueError(f"parent path exists and is not a directory: {parent}")
+    parent.mkdir(parents=True, exist_ok=True)
 
 
 def run_docker(args: list[str], *, check: bool = False) -> subprocess.CompletedProcess[str]:
@@ -300,6 +379,16 @@ def volume_path_is_dir(docker_volume: str, rel: str) -> bool:
     return result.returncode == 0
 
 
+def volume_path_is_file(docker_volume: str, rel: str) -> bool:
+    if rel == ".":
+        return False
+    dest = f"/xfer/{rel}"
+    result = run_docker(
+        ["run", "--rm", "-v", f"{docker_volume}:/xfer", HELPER_IMAGE, "test", "-f", dest]
+    )
+    return result.returncode == 0
+
+
 def running_services(compose_file: Path, work_dir: Path) -> set[str]:
     if not compose_file.exists():
         return set()
@@ -342,8 +431,8 @@ def require_docker() -> None:
         sys.exit(1)
 
 
-def resolve_host_dir(host_dir: str, cwd: Path) -> Path:
-    path = Path(host_dir)
+def resolve_host_path(host_path: str, cwd: Path) -> Path:
+    path = Path(host_path)
     if not path.is_absolute():
         path = cwd / path
     return path.resolve()
@@ -352,9 +441,11 @@ def resolve_host_dir(host_dir: str, cwd: Path) -> Path:
 def run_transfer(
     *,
     mode: str,
+    kind: str,
     docker_volume: str,
     rel: str,
-    host_dir: Path,
+    host_mount: Path,
+    host_name: str,
     overwrite: bool,
     uid: str,
     gid: str,
@@ -363,7 +454,11 @@ def run_transfer(
         "-e",
         f"XFER_MODE={mode}",
         "-e",
+        f"XFER_KIND={kind}",
+        "-e",
         f"XFER_REL={rel}",
+        "-e",
+        f"XFER_NAME={host_name}",
         "-e",
         f"XFER_OVERWRITE={'1' if overwrite else '0'}",
         "-e",
@@ -379,7 +474,7 @@ def run_transfer(
             "-v",
             f"{docker_volume}:/xfer",
             "-v",
-            f"{host_dir}:/host",
+            f"{host_mount}:/host",
             HELPER_IMAGE,
             "sh",
             "-c",
@@ -395,17 +490,17 @@ def run_transfer(
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="transfer.py",
-        description="Copy a directory between the host and a DockerSeed named volume.",
+        description="Copy a directory or file between the host and a DockerSeed named volume.",
         epilog=USAGE,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--force",
         action="store_true",
-        help="overwrite the target directory without prompting",
+        help="overwrite the target without prompting",
     )
-    parser.add_argument("first", help="host directory or service:volume[:path]")
-    parser.add_argument("second", help="the other of host directory or volume spec")
+    parser.add_argument("first", help="host path or service:volume[:path]")
+    parser.add_argument("second", help="the other of host path or volume spec")
     args = parser.parse_args(argv)
 
     service_names = existing_service_names(SERVICES_DIR)
@@ -446,6 +541,8 @@ def main(argv: list[str] | None = None) -> None:
 
     env = load_env(ENV_FILE)
     mount = interpolate_mount(mounts[volume_key], env)
+    volume_path_is_explicit_dir = path_implies_directory(internal)
+    host_path_is_explicit_dir = path_implies_directory(host_arg)
     try:
         rel = volume_relative_path(internal, mount)
     except ValueError as exc:
@@ -462,16 +559,7 @@ def main(argv: list[str] | None = None) -> None:
 
     project = compose_project_name(WORK_DIR, env)
     docker_volume = f"{project}_{volume_key}"
-    host_dir = resolve_host_dir(host_arg, WORK_DIR)
-    volume_root = rel == "."
-    loc = f"{service}:{volume_key}:{rel}"
-
-    verb = "Importing" if direction == "import" else "Exporting"
-    print(f"{BLUE}⚙{RESET} {verb} {'host → volume' if direction == 'import' else 'volume → host'}")
-    print(f"{GREY}◦{RESET} Host: {host_dir}")
-    print(f"{GREY}◦{RESET} Spec: {loc}")
-    print(f"{GREY}◦{RESET} Docker volume: {docker_volume}")
-    print(f"{GREY}◦{RESET} Volume mount: {mount}")
+    host_path = resolve_host_path(host_arg, WORK_DIR)
 
     require_docker()
 
@@ -484,12 +572,90 @@ def main(argv: list[str] | None = None) -> None:
 
     overwrite = False
     if direction == "import":
-        if not host_dir.is_dir():
+        if host_path.is_file():
+            kind = "file"
+            created_volume = not docker_volume_exists(docker_volume)
+            if created_volume:
+                print(
+                    f"{YELLOW}⚠{RESET} Volume {docker_volume} does not exist yet; "
+                    "it will be created."
+                )
+                dest_is_dir = volume_path_is_explicit_dir
+            else:
+                if volume_path_is_explicit_dir:
+                    if volume_path_is_file(docker_volume, rel):
+                        print(
+                            f"{RED}✗{RESET} Destination path ends with '/' but "
+                            f"exists as a file in the volume: {service}:{volume_key}:{rel}",
+                            file=sys.stderr,
+                        )
+                        sys.exit(1)
+                    dest_is_dir = True
+                elif volume_path_is_file(docker_volume, rel):
+                    dest_is_dir = False
+                elif volume_path_is_dir(docker_volume, rel) or rel == ".":
+                    dest_is_dir = True
+                else:
+                    dest_is_dir = False
+
+            dest_rel = resolve_import_file_rel(
+                rel, host_path.name, dest_is_dir=dest_is_dir
+            )
+            loc = f"{service}:{volume_key}:{dest_rel}"
+
+            print(f"{BLUE}⚙{RESET} Importing host → volume (file)")
+            print(f"{GREY}◦{RESET} Host: {host_path}")
+            print(f"{GREY}◦{RESET} Spec: {loc}")
+            print(f"{GREY}◦{RESET} Docker volume: {docker_volume}")
+            print(f"{GREY}◦{RESET} Volume mount: {mount}")
+
+            if not created_volume and volume_target_exists(docker_volume, dest_rel):
+                if volume_path_is_dir(docker_volume, dest_rel):
+                    print(
+                        f"{RED}✗{RESET} Destination exists as a directory in the volume: {loc}",
+                        file=sys.stderr,
+                    )
+                    sys.exit(1)
+                confirm_overwrite(loc, volume_root=False, force=args.force)
+                overwrite = True
+
+            run_transfer(
+                mode="import",
+                kind=kind,
+                docker_volume=docker_volume,
+                rel=dest_rel,
+                host_mount=host_path.parent,
+                host_name=host_path.name,
+                overwrite=overwrite,
+                uid=uid,
+                gid=uid,
+            )
+            print(f"{GREEN}✓{RESET} Imported {host_path} → {docker_volume}:{dest_rel}")
+            return
+
+        if not host_path.is_dir():
             print(
-                f"{RED}✗{RESET} Host path is not an existing directory: {host_dir}",
+                f"{RED}✗{RESET} Host path is not an existing directory or file: {host_path}",
                 file=sys.stderr,
             )
             sys.exit(1)
+
+        if docker_volume_exists(docker_volume) and volume_path_is_file(docker_volume, rel):
+            print(
+                f"{RED}✗{RESET} Cannot import a directory onto a file in the volume: "
+                f"{service}:{volume_key}:{rel}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        loc = f"{service}:{volume_key}:{rel}"
+        volume_root = rel == "."
+
+        print(f"{BLUE}⚙{RESET} Importing host → volume")
+        print(f"{GREY}◦{RESET} Host: {host_path}")
+        print(f"{GREY}◦{RESET} Spec: {loc}")
+        print(f"{GREY}◦{RESET} Docker volume: {docker_volume}")
+        print(f"{GREY}◦{RESET} Volume mount: {mount}")
 
         created_volume = not docker_volume_exists(docker_volume)
         if created_volume:
@@ -504,14 +670,16 @@ def main(argv: list[str] | None = None) -> None:
 
         run_transfer(
             mode="import",
+            kind="dir",
             docker_volume=docker_volume,
             rel=rel,
-            host_dir=host_dir,
+            host_mount=host_path,
+            host_name=".",
             overwrite=overwrite,
             uid=uid,
             gid=uid,
         )
-        print(f"{GREEN}✓{RESET} Imported {host_dir} → {docker_volume}:{rel}")
+        print(f"{GREEN}✓{RESET} Imported {host_path} → {docker_volume}:{rel}")
         return
 
     if not docker_volume_exists(docker_volume):
@@ -521,36 +689,98 @@ def main(argv: list[str] | None = None) -> None:
         )
         sys.exit(1)
 
+    if volume_path_is_file(docker_volume, rel):
+        kind = "file"
+        volume_basename = posixpath.basename(rel)
+        if host_path_is_explicit_dir and host_path.exists() and host_path.is_file():
+            print(
+                f"{RED}✗{RESET} Host path ends with '/' but exists as a file: {host_path}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        dest_host = resolve_export_file_host(
+            host_path,
+            volume_basename,
+            dest_is_dir=host_path_is_explicit_dir,
+        )
+
+        loc = f"{service}:{volume_key}:{rel}"
+        print(f"{BLUE}⚙{RESET} Exporting volume → host (file)")
+        print(f"{GREY}◦{RESET} Host: {dest_host}")
+        print(f"{GREY}◦{RESET} Spec: {loc}")
+        print(f"{GREY}◦{RESET} Docker volume: {docker_volume}")
+        print(f"{GREY}◦{RESET} Volume mount: {mount}")
+
+        if dest_host.exists() and dest_host.is_dir():
+            print(
+                f"{RED}✗{RESET} Host path exists and is a directory: {dest_host}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        try:
+            ensure_parent_dir(dest_host)
+        except ValueError as exc:
+            print(f"{RED}✗{RESET} {exc}", file=sys.stderr)
+            sys.exit(1)
+
+        if dest_host.exists():
+            confirm_overwrite(str(dest_host), volume_root=False, force=args.force)
+            overwrite = True
+
+        run_transfer(
+            mode="export",
+            kind=kind,
+            docker_volume=docker_volume,
+            rel=rel,
+            host_mount=dest_host.parent,
+            host_name=dest_host.name,
+            overwrite=overwrite,
+            uid=uid,
+            gid=uid,
+        )
+        print(f"{GREEN}✓{RESET} Exported {docker_volume}:{rel} → {dest_host}")
+        return
+
     if not volume_path_is_dir(docker_volume, rel):
         print(
             f"{RED}✗{RESET} Source path does not exist in the volume "
-            f"or is not a directory: {loc}",
+            f"or is not a directory or file: {service}:{volume_key}:{rel}",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    if host_dir.exists():
-        if not host_dir.is_dir():
+    loc = f"{service}:{volume_key}:{rel}"
+    print(f"{BLUE}⚙{RESET} Exporting volume → host")
+    print(f"{GREY}◦{RESET} Host: {host_path}")
+    print(f"{GREY}◦{RESET} Spec: {loc}")
+    print(f"{GREY}◦{RESET} Docker volume: {docker_volume}")
+    print(f"{GREY}◦{RESET} Volume mount: {mount}")
+
+    if host_path.exists():
+        if not host_path.is_dir():
             print(
-                f"{RED}✗{RESET} Host path exists and is not a directory: {host_dir}",
+                f"{RED}✗{RESET} Cannot export a directory onto a host file: {host_path}",
                 file=sys.stderr,
             )
             sys.exit(1)
-        confirm_overwrite(str(host_dir), volume_root=False, force=args.force)
+        confirm_overwrite(str(host_path), volume_root=False, force=args.force)
         overwrite = True
     else:
-        host_dir.mkdir(parents=True, exist_ok=True)
+        host_path.mkdir(parents=True, exist_ok=True)
 
     run_transfer(
         mode="export",
+        kind="dir",
         docker_volume=docker_volume,
         rel=rel,
-        host_dir=host_dir,
+        host_mount=host_path,
+        host_name=".",
         overwrite=overwrite,
         uid=uid,
         gid=uid,
     )
-    print(f"{GREEN}✓{RESET} Exported {docker_volume}:{rel} → {host_dir}")
+    print(f"{GREEN}✓{RESET} Exported {docker_volume}:{rel} → {host_path}")
 
 
 if __name__ == "__main__":

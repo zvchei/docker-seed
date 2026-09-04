@@ -164,6 +164,109 @@ class VolumeRelativePathTests(unittest.TestCase):
         )
 
 
+class PathImpliesDirectoryTests(unittest.TestCase):
+    def test_trailing_slash(self) -> None:
+        self.assertTrue(transfer.path_implies_directory("some-dir/"))
+
+    def test_nested_trailing_slash(self) -> None:
+        self.assertTrue(transfer.path_implies_directory("a/b/"))
+
+    def test_no_trailing_slash(self) -> None:
+        self.assertFalse(transfer.path_implies_directory("some-dir"))
+
+    def test_empty(self) -> None:
+        self.assertFalse(transfer.path_implies_directory(""))
+
+
+class ResolveImportFileRelTests(unittest.TestCase):
+    def test_volume_root_uses_basename(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_file_rel(".", "config.json", dest_is_dir=True),
+            "config.json",
+        )
+
+    def test_existing_dir_joins_basename(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_file_rel("src", "config.json", dest_is_dir=True),
+            "src/config.json",
+        )
+
+    def test_trailing_slash_dir_joins_basename(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_file_rel("some-dir", "file.ext", dest_is_dir=True),
+            "some-dir/file.ext",
+        )
+
+    def test_file_path_kept_when_not_dir(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_file_rel(
+                "config.json", "other.json", dest_is_dir=False
+            ),
+            "config.json",
+        )
+
+    def test_nested_file_path_kept(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_file_rel(
+                "cfg/app.json", "local.json", dest_is_dir=False
+            ),
+            "cfg/app.json",
+        )
+
+
+class ResolveExportFileHostTests(unittest.TestCase):
+    def test_into_existing_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            host = Path(tmp)
+            self.assertEqual(
+                transfer.resolve_export_file_host(host, "config.json"),
+                host / "config.json",
+            )
+
+    def test_exact_file_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "out.json"
+            self.assertEqual(
+                transfer.resolve_export_file_host(dest, "config.json"),
+                dest,
+            )
+
+    def test_nested_rename_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "outdir" / "file.json"
+            self.assertEqual(
+                transfer.resolve_export_file_host(dest, "config.json"),
+                dest,
+            )
+
+    def test_trailing_slash_forces_into_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "outdir"
+            self.assertEqual(
+                transfer.resolve_export_file_host(
+                    dest, "config.json", dest_is_dir=True
+                ),
+                dest / "config.json",
+            )
+
+
+class EnsureParentDirTests(unittest.TestCase):
+    def test_creates_missing_parents(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "outdir" / "file.json"
+            transfer.ensure_parent_dir(dest)
+            self.assertTrue(dest.parent.is_dir())
+
+    def test_parent_file_raises(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp) / "outdir"
+            parent.write_text("not a dir")
+            dest = parent / "file.json"
+            with self.assertRaises(ValueError) as ctx:
+                transfer.ensure_parent_dir(dest)
+            self.assertIn("not a directory", str(ctx.exception))
+
+
 class ServiceVolumeMountsTests(unittest.TestCase):
     def test_parses_service_list_not_top_level_keys(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
