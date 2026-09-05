@@ -1,0 +1,17 @@
+{
+    "description": "Claude Code CLI",
+    "apt_packages": ["curl"],
+    "assets": [
+        {
+            "url": "https://claude.ai/install.sh",
+            "filename": "claude-install.sh"
+        }
+    ],
+    "volumes": {
+        "claude": ".claude"
+    },
+    "env_vars": {
+        "CLAUDE_CONFIG_DIR": "/home/${CONTAINER_USER}/.claude"
+    },
+    "cmd": ["claude"]
+}
