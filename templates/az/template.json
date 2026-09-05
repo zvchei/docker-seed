@@ -1,6 +1,7 @@
 {
     "description": "Azure CLI (az)",
     "volumes": {
-        "azure_config": ".azure"
+        "azure_config": ".azure",
+        "azure_devops": ".azure-devops"
     }
 }
