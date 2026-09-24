@@ -75,6 +75,15 @@
         "cmd": ["/bin/bash"]
     },
     {
+        "name": "gh",
+        "enabled": true,
+        "templates": [
+            "gh"
+        ],
+        "interactive": true,
+        "cmd": ["/bin/bash"]
+    },
+    {
         "name": "gui",
         "enabled": true,
         "templates": ["gui"],

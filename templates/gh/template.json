@@ -1,0 +1,7 @@
+{
+    "description": "GitHub CLI (gh)",
+    "requires": ["git"],
+    "volumes": {
+        "gh_config": ".config/gh"
+    }
+}
