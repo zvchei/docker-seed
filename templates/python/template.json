@@ -3,10 +3,12 @@
     "apt_packages": ["python3-venv", "python3-dev"],
     "volumes": {
         "env": "env",
-        "cache": ".cache/pip"
+        "cache": ".cache/pip",
+        "python_state": ".local/state/python"
     },
     "env_vars": {
         "PIP_TRUSTED_HOST": "${PIP_TRUSTED_HOST}",
-        "PIP_INDEX_URL": "${PIP_INDEX_URL}"
+        "PIP_INDEX_URL": "${PIP_INDEX_URL}",
+        "PYTHON_HISTORY": "/home/${CONTAINER_USER}/.local/state/python/history"
     }
 }
