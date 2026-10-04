@@ -6,7 +6,9 @@ DockerSeed is a **code-generation tool**, not a service itself. It generates Doc
 
 ## Core workflow
 
-Scripts operate on the **current working directory** (`Path.cwd()`), not the directory that contains the script.
+Most scripts operate on the **current working directory** (`Path.cwd()`), not
+the directory that contains the script. `move.py` instead takes an explicit
+project directory and target path.
 
 ```
 ./till.py          # scaffolds containers.json, .env (from .env.template), and
@@ -20,7 +22,19 @@ Scripts operate on the **current working directory** (`Path.cwd()`), not the dir
 ./configure.py     # interactively review/update .env (re-run anytime)
 ./transfer.py      # copy a directory or file into or out of a named volume
                    # (service need not be running; direction from args)
+./move.py          # move a project directory; optionally migrate Docker
+                   # volumes, image tags, and COMPOSE_PROJECT_NAME
+./backup.py        # archive containers.json/.env/templates/assets.json/
+                   # secrets (opt-in) plus every project volume into one
+                   # restorable .tar.gz
+./restore.py       # recreate a project from a backup.py archive, optionally
+                   # under a new name (--name); regenerates via sow.py/harvest.py
 ```
+
+`move.py`, `backup.py`, and `restore.py` preflight-check everything before
+mutating anything, and roll back automatically on failure; if the rollback
+itself fails, they write a `*-ROLLBACK-<timestamp>.txt` file with manual
+recovery commands.
 
 Built-in templates and the shared `common/` tree live in the DockerSeed repository. When the working directory is not the repo, `sow.py` / `harvest.py` sync `common/` into `./common/`. Template lookup prefers `./templates/<name>/` over `<repo>/templates/<name>/`. The repo ships `.env.template` only; `till.py` / `harvest.py` copy it to `./.env` when missing.
 

@@ -2,7 +2,7 @@
 
 DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `./harvest.py`.
 
-`sow.py`, `tend.py`, `harvest.py`, `configure.py`, `cleanup.py`, and `transfer.py` all operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
+`sow.py`, `tend.py`, `harvest.py`, `configure.py`, `cleanup.py`, `transfer.py`, `backup.py`, and `restore.py` operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. `move.py` accepts an explicit project directory and target. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
 
 ## How services get into the tree
 
@@ -256,6 +256,45 @@ The spec is `<service>:<volume>[:<path>]`. `volume` is the Compose key (`root`, 
 For files, destinations follow cp/rsync rules: if the destination exists as a directory (or is the volume root on import), the file is placed inside it under the same basename; otherwise the path is the destination file (parent directories are created as needed). A trailing slash forces directory semantics (e.g. `service:volume:dest/` → `dest/<basename>`).
 
 If the target already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing.
+
+### Moving a project (`move.py`)
+
+```bash
+./move.py <project> <target> [--force]
+```
+
+`<project>` is a path to a directory containing `containers.json`. A `<target>` ending in `/` is an existing directory to move the project into; without a trailing `/`, it is the exact destination path:
+
+```bash
+./move.py ./my-project ../
+./move.py ./my-project ../newplace/newname
+```
+
+The final destination must not already exist; the command never overwrites it. Moving into a directory preserves the project's Docker identity. If the exact destination changes the project name, Docker volumes are copied to the new `<project>_*` prefix, images are retagged (`<project>-*`), and `.env` `COMPOSE_PROJECT_NAME` is updated. These changes are preflight-checked and rolled back on failure. `--force` skips the running-container check and allows reusing an existing Docker resource prefix, but never bypasses the destination-path collision check.
+
+### Archiving and restoring a project (`backup.py` / `restore.py`)
+
+`backup.py` packages a project's source-of-truth files (`containers.json`, `.env`, local `./templates/` overlay, `assets.json`, optionally `secrets/`) together with the live contents of every Docker volume it owns into a single restorable archive:
+
+```bash
+./backup.py [output.tar] [--force] [--include-secrets] [--no-secrets]
+```
+
+If `output.tar` is omitted, it defaults to `./<project>-backup-<timestamp>.tar`. The archive is written uncompressed so `backup.py` never sits silently churning through a slow gzip pass; compress it afterwards if you want to save space. Plain `gzip` gives no progress feedback — pipe through `pv` for a live progress bar instead:
+
+```bash
+pv backup.tar | gzip > backup.tar.gz
+```
+
+If `./secrets/` contains real files (not just placeholders), you're asked whether to include them, unless `--include-secrets`/`--no-secrets` is given. The archive is assembled in a temp staging directory and only moved into place atomically on success, so a failure never leaves a partial backup file behind.
+
+`restore.py` recreates a project from such an archive, regenerating `services/` and the root `docker-compose.yaml` via `sow.py`/`harvest.py`. Both plain `.tar` and gzip-compressed `.tar.gz` archives are accepted:
+
+```bash
+./restore.py <archive.tar[.gz]> [directory] [--name NEW_NAME] [--force]
+```
+
+`directory` defaults to the current directory (created if it doesn't exist, with confirmation). The project keeps its original name unless `--name` is given. Docker volumes are recreated and their data restored before `sow.py`/`harvest.py` run. As with `move.py`, every step is preflight-checked and ledgered for rollback; if an automatic rollback step fails, a `RESTORE-ROLLBACK-<project>-<timestamp>.txt` file with manual recovery commands is written.
 
 ## License
 
