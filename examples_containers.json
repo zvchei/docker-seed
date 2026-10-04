@@ -84,6 +84,15 @@
         "cmd": ["/bin/bash"]
     },
     {
+        "name": "huggingface",
+        "enabled": true,
+        "templates": [
+            "huggingface-cli"
+        ],
+        "interactive": true,
+        "cmd": ["/bin/bash"]
+    },
+    {
         "name": "gui",
         "enabled": true,
         "templates": ["gui"],

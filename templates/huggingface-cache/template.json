@@ -1,0 +1,6 @@
+{
+    "description": "Shared Hugging Face Hub cache (downloaded models, datasets, and the auth token) under ~/.cache/huggingface",
+    "volumes": {
+        "huggingface_cache": ".cache/huggingface"
+    }
+}

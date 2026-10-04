@@ -1,0 +1,8 @@
+{
+    "description": "Hugging Face Hub CLI (huggingface-cli / hf) (requires python template)",
+    "requires": ["python", "huggingface-cache"],
+    "env_vars": {
+        "HF_HOME": "/home/${CONTAINER_USER}/.cache/huggingface",
+        "HF_TOKEN": "${HF_TOKEN}"
+    }
+}

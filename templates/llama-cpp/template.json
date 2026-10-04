@@ -1,5 +1,6 @@
 {
     "description": "llama.cpp Vulkan binaries",
+    "requires": ["huggingface-cache"],
     "apt_packages": ["ca-certificates", "libvulkan1", "libgomp1"],
     "assets": [
         {
@@ -8,8 +9,7 @@
         }
     ],
     "volumes": {
-        "llama_cpp": ".llama.cpp",
-        "llama_cpp_hf_cache": ".cache/huggingface"
+        "llama_cpp": ".llama.cpp"
     },
     "ports": ["8080:8080"],
     "cmd": ["llama-cli", "--help"]
