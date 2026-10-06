@@ -1,0 +1,12 @@
+{
+    "description": "Pi coding agent CLI",
+    "requires": ["node"],
+    "apt_packages": ["ca-certificates", "git", "ripgrep", "fd-find"],
+    "volumes": {
+        "pi": ".pi"
+    },
+    "env_vars": {
+        "PI_SKIP_VERSION_CHECK": "1"
+    },
+    "cmd": ["pi"]
+}

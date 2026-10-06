@@ -93,6 +93,16 @@
         "cmd": ["/bin/bash"]
     },
     {
+        "name": "pi",
+        "enabled": true,
+        "templates": [
+            "git",
+            "ssh_keys",
+            "pi"
+        ],
+        "interactive": true
+    },
+    {
         "name": "gui",
         "enabled": true,
         "templates": ["gui"],

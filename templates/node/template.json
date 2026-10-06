@@ -3,8 +3,8 @@
     "apt_packages": ["xz-utils"],
     "assets": [
         {
-            "url": "https://nodejs.org/dist/v22.17.0/node-v22.17.0-linux-x64.tar.xz",
-            "filename": "node-v22.17.0-linux-x64.tar.xz"
+            "url": "https://nodejs.org/dist/v22.23.3/node-v22.23.3-linux-x64.tar.xz",
+            "filename": "node-v22.23.3-linux-x64.tar.xz"
         }
     ],
     "volumes": {
