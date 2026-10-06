@@ -118,6 +118,12 @@
         "networks": [{"name": "python_net", "external": true}]
     },
     {
+        "name": "python312",
+        "enabled": true,
+        "templates": ["python-uv"],
+        "build_args": { "PYTHON_VERSION": "3.12" }
+    },
+    {
         "name": "jupyter",
         "enabled": true,
         "templates": ["jupyter"]

@@ -1,0 +1,24 @@
+{
+    "description": "Python at a pinned version (via uv) with virtualenv; set build_args.PYTHON_VERSION per container",
+    "apt_packages": ["ca-certificates"],
+    "assets": [
+        {
+            "url": "https://github.com/astral-sh/uv/releases/download/0.12.23/uv-x86_64-unknown-linux-gnu.tar.gz",
+            "filename": "uv-x86_64-unknown-linux-gnu.tar.gz"
+        }
+    ],
+    "build_args": {
+        "PYTHON_VERSION": "3.12"
+    },
+    "volumes": {
+        "env": {"path": "env", "container_specific": true},
+        "cache": ".cache/pip",
+        "uv_cache": ".cache/uv",
+        "python_state": ".local/state/python"
+    },
+    "env_vars": {
+        "PIP_TRUSTED_HOST": "${PIP_TRUSTED_HOST}",
+        "PIP_INDEX_URL": "${PIP_INDEX_URL}",
+        "PYTHON_HISTORY": "/home/${CONTAINER_USER}/.local/state/python/history"
+    }
+}
