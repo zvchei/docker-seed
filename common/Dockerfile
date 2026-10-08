@@ -9,8 +9,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get -y upgrade  && \
-    # apt-get -y install <packages common to all services>
-    apt-get -y clean
+    apt-get -y install --no-install-recommends ca-certificates && \
+    apt-get -y clean && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g ${USER_ID} ${USER}
 RUN useradd ${USER} -u ${USER_ID} -g ${USER_ID} -m -s /bin/bash

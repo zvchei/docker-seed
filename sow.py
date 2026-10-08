@@ -407,7 +407,7 @@ def generate_dockerfile(merged: Merged) -> str:
     if merged.get("apt_packages"):
         pkgs: str = " ".join(merged["apt_packages"])
         lines.append(f"RUN apt-get -y update && \\")
-        lines.append(f"    apt-get -y install {pkgs} && \\")
+        lines.append(f"    apt-get -y install --no-install-recommends {pkgs} && \\")
         lines.append(f"    apt-get -y clean && rm -rf /var/lib/apt/lists/*")
 
     for name, fragment in merged["root_fragments"]:
