@@ -1,0 +1,12 @@
+{
+    "description": "Atlassian Teamwork Graph CLI (twg)",
+    "assets": [
+        {
+            "url": "https://teamwork-graph.atlassian.com/cli/twg-linux-x64-v1.3.5",
+            "filename": "twg-linux-x64-v1.3.5"
+        }
+    ],
+    "volumes": {
+        "twg_config": ".config/twg"
+    }
+}
