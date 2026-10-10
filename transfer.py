@@ -29,6 +29,7 @@ COMPOSE_FILE: Path = WORK_DIR / "docker-compose.yaml"
 HELPER_IMAGE: str = "alpine"
 
 RED = "\033[31m"
+BRIGHT_RED = "\033[91m"
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
 BLUE = "\033[34m"
@@ -419,7 +420,7 @@ def confirm_overwrite(target: str, *, volume_root: bool, force: bool) -> None:
     if force:
         print(f"{GREY}◦{RESET} --force: overwriting.")
         return
-    answer = input(f"Overwrite {target}? [y/N]: ").strip().lower()
+    answer = input(f"\n{BRIGHT_RED}Overwrite {target}? [y/N]: {RESET}").strip().lower()
     if answer not in {"y", "yes"}:
         print("Aborted.")
         sys.exit(1)
