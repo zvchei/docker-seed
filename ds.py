@@ -2,12 +2,12 @@
 """
 ds.py — Starts a service with extra arguments appended to its command.
 
-    ds.py r|run <service> [args...]   docker compose run --rm <service> <cmd> <args...>
-    ds.py u|up  <service> [args...]   docker compose up <service>, with <cmd> <args...>
-    ds.py s|shell <service> [command [args...]]
+    ds.py run <service> [args...]     docker compose run --rm <service> <cmd> <args...>
+    ds.py up  <service> [args...]     docker compose up <service>, with <cmd> <args...>
+    ds.py shell <service> [command [args...]]
                                       docker compose run --rm <service> <command> <args...>,
                                       or a bash shell when no command is given
-    ds.py l|list                      enabled services from the nearest containers.json
+    ds.py list                        enabled services from the nearest containers.json
 
 <cmd> is the service's resolved command: the compose `command:` if set,
 otherwise the image's CMD. The entrypoint is kept as is. Without extra
@@ -152,17 +152,14 @@ def list_services() -> None:
 
 
 ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
-    "r": run,
     "run": run,
-    "u": up,
     "up": up,
-    "s": shell,
     "shell": shell,
 }
 
 
 def main() -> None:
-    if sys.argv[1:2] in (["l"], ["list"]):
+    if sys.argv[1:2] == ["list"]:
         list_services()
         return
     if len(sys.argv) < 3 or sys.argv[1] not in ACTIONS:
