@@ -18,6 +18,10 @@ import sys
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
+RED = "\033[31m"
+GREEN = "\033[32m"
+RESET = "\033[0m"
+
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
 WORK_DIR: Path = Path.cwd()
 REPO_TEMPLATES_DIR: Path = SCRIPT_DIR / "templates"
@@ -95,7 +99,7 @@ def resolve_container_volumes(name: str, merged: Merged) -> dict[str, str]:
 
 def merge_field(existing: Any, value: Any, key: str = "", method: str = "merge") -> Any:
     if method not in {"merge", "replace"}:
-        print(f"Error: unknown merge method '{method}'")
+        print(f"{RED}✗{RESET} Error: unknown merge method '{method}'", file=sys.stderr)
         sys.exit(1)
 
     if (
@@ -143,12 +147,12 @@ def sync_common() -> None:
     if COMMON_SRC.resolve() == COMMON_DST.resolve():
         return
     if not COMMON_SRC.is_dir():
-        print(f"Error: shared common directory not found at {COMMON_SRC}")
+        print(f"{RED}✗{RESET} Error: shared common directory not found at {COMMON_SRC}", file=sys.stderr)
         sys.exit(1)
     if COMMON_DST.exists():
         shutil.rmtree(COMMON_DST)
     shutil.copytree(COMMON_SRC, COMMON_DST)
-    print(f"\033[32m✓\033[0m  Synced common/ into {COMMON_DST}")
+    print(f"{GREEN}✓{RESET}  Synced common/ into {COMMON_DST}")
 
 
 def find_template_dir(name: str) -> Path:
@@ -185,7 +189,7 @@ def load_template(name: str) -> Template:
     tpl_dir: Path = find_template_dir(name)
     manifest_path: Path = tpl_dir / "template.json"
     if not manifest_path.exists():
-        print(f"Error: template '{name}' not found at {tpl_dir}")
+        print(f"{RED}✗{RESET} Error: template '{name}' not found at {tpl_dir}", file=sys.stderr)
         sys.exit(1)
 
     with open(manifest_path) as f:
@@ -218,7 +222,7 @@ def resolve_templates(names: list[str], _chain: list[str] | None = None) -> list
 
     for name in names:
         if name in _chain:
-            print(f"Error: circular dependency detected: {' -> '.join(_chain)} -> {name}")
+            print(f"{RED}✗{RESET} Error: circular dependency detected: {' -> '.join(_chain)} -> {name}", file=sys.stderr)
             sys.exit(1)
 
         tpl_dir: Path = find_template_dir(name)
@@ -295,17 +299,17 @@ def resolve_merge_source(
 ) -> tuple[str, str]:
     """Resolve a templates[] item to ('template'|'service', name)."""
     if not isinstance(reference, str) or not reference:
-        print("Error: 'templates' entries must be non-empty strings.")
+        print(f"{RED}✗{RESET} Error: 'templates' entries must be non-empty strings.", file=sys.stderr)
         sys.exit(1)
 
     qualifier, separator, qualified_name = reference.partition(":")
     if separator and qualifier in {"template", "service"}:
         if not qualified_name:
-            print(f"Error: template reference '{reference}' has no name.")
+            print(f"{RED}✗{RESET} Error: template reference '{reference}' has no name.", file=sys.stderr)
             sys.exit(1)
         if qualifier == "template":
             if not template_exists(qualified_name):
-                print(f"Error: template '{qualified_name}' does not exist.")
+                print(f"{RED}✗{RESET} Error: template '{qualified_name}' does not exist.", file=sys.stderr)
                 sys.exit(1)
             return "template", qualified_name
 
@@ -362,7 +366,7 @@ def merge_container_sources(
     """Merge template and service references in declared order."""
     references: Any = container.get("templates", [])
     if not isinstance(references, list):
-        print(f"Error: container '{container['name']}' field 'templates' must be a list.")
+        print(f"{RED}✗{RESET} Error: container '{container['name']}' field 'templates' must be a list.", file=sys.stderr)
         sys.exit(1)
 
     merged: Merged = {"root_fragments": [], "user_fragments": []}
@@ -465,7 +469,7 @@ def validate_extends(containers: list[dict[str, Any]]) -> None:
 
     def check(name: str, chain: list[str]) -> None:
         if name in chain:
-            print(f"Error: circular 'extends' detected: {' -> '.join(chain + [name])}")
+            print(f"{RED}✗{RESET} Error: circular 'extends' detected: {' -> '.join(chain + [name])}", file=sys.stderr)
             sys.exit(1)
         container = next((c for c in containers if c["name"] == name), None)
         if container is None:
@@ -517,7 +521,7 @@ def build_merged_for_container(
     if parent_name is not None:
         parent = next((c for c in all_containers if c["name"] == parent_name), None)
         if parent is None:
-            print(f"Error: container '{name}' extends '{parent_name}', which does not exist.")
+            print(f"{RED}✗{RESET} Error: container '{name}' extends '{parent_name}', which does not exist.", file=sys.stderr)
             sys.exit(1)
 
         parent_merged = build_merged_for_container(parent, all_containers, _chain + [name])
@@ -548,7 +552,7 @@ def build_merged_for_container(
             if isinstance(container["cmd"], list):
                 merged["cmd"] = container["cmd"]
             else:
-                print(f"Error: 'cmd' must be a command array (list of strings)")
+                print(f"{RED}✗{RESET} Error: 'cmd' must be a command array (list of strings)", file=sys.stderr)
                 sys.exit(1)
 
         container_main = container.get("main")
@@ -574,7 +578,7 @@ def build_merged_for_container(
         if isinstance(container_entrypoint, list):
             merged["entrypoint"] = container_entrypoint
         else:
-            print(f"Error: 'entrypoint' must be a command array (list of strings)")
+            print(f"{RED}✗{RESET} Error: 'entrypoint' must be a command array (list of strings)", file=sys.stderr)
             sys.exit(1)
 
     container_cmd = container.get("cmd")
@@ -582,7 +586,7 @@ def build_merged_for_container(
         if isinstance(container_cmd, list):
             merged["cmd"] = container_cmd
         else:
-            print(f"Error: 'cmd' must be a command array (list of strings)")
+            print(f"{RED}✗{RESET} Error: 'cmd' must be a command array (list of strings)", file=sys.stderr)
             sys.exit(1)
 
     container_ports = container.get("ports")
@@ -590,7 +594,7 @@ def build_merged_for_container(
         if isinstance(container_ports, list):
             merged["ports"] = container_ports
         else:
-            print(f"Error: 'ports' must be a list of port mappings (list of strings)")
+            print(f"{RED}✗{RESET} Error: 'ports' must be a list of port mappings (list of strings)", file=sys.stderr)
             sys.exit(1)
 
     if container.get("init"):
@@ -773,7 +777,7 @@ def generate_compose(name: str, merged: Merged) -> str:
 
 def main() -> None:
     if not CONTAINERS_FILE.exists():
-        print(f"Error: {CONTAINERS_FILE} not found.")
+        print(f"{RED}✗{RESET} Error: {CONTAINERS_FILE} not found.", file=sys.stderr)
         sys.exit(1)
 
     sync_common()
@@ -806,7 +810,7 @@ def main() -> None:
         else:
             references: Any = container.get("templates", [])
             if not isinstance(references, list):
-                print(f"Error: container '{name}' field 'templates' must be a list.")
+                print(f"{RED}✗{RESET} Error: container '{name}' field 'templates' must be a list.", file=sys.stderr)
                 sys.exit(1)
             label = ", ".join(str(reference) for reference in references)
             label = label or "(no templates)"
@@ -830,15 +834,15 @@ def main() -> None:
             if asset not in all_assets:
                 all_assets.append(asset)
 
-        print(f"\033[32m✓\033[0m  Generated services/{name}/")
+        print(f"{GREEN}✓{RESET}  Generated services/{name}/")
         generated.append(name)
 
-    print(f"\n\033[32m✓\033[0m  Done. Generated {len(generated)} container(s).\n")
+    print(f"\n{GREEN}✓{RESET}  Done. Generated {len(generated)} container(s).\n")
 
     if all_assets:
         with open(ASSETS_FILE, "w") as f:
             json.dump(all_assets, f, indent=2)
-        print(f"\033[32m✓\033[0m  Generated assets.json with {len(all_assets)} asset(s).")
+        print(f"{GREEN}✓{RESET}  Generated assets.json with {len(all_assets)} asset(s).")
 
         for asset in all_assets:
             print(f"  \033[34m⬇\033[0m  {asset['filename']}")

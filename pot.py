@@ -32,6 +32,10 @@ ENV_FILE: Path = WORK_DIR / ".env"
 COMPOSE_FILE: Path = SCRIPT_DIR / "docker-compose.yaml"
 SERVICE_NAME: str = "default"
 
+RED = "\033[31m"
+YELLOW = "\033[33m"
+RESET = "\033[0m"
+
 # Fallbacks used if a variable is missing from .env.
 DEFAULT_ENV: dict[str, str] = {
     "CONTAINER_USER": "user",
@@ -65,12 +69,12 @@ def main() -> None:
     mount_dir = Path.cwd()
 
     if shutil.which("docker") is None:
-        print("Error: `docker` is not installed or not in PATH.", file=sys.stderr)
+        print(f"{RED}✗{RESET} Error: `docker` is not installed or not in PATH.", file=sys.stderr)
         sys.exit(1)
 
     if not COMPOSE_FILE.exists():
         print(
-            f"Error: {COMPOSE_FILE} not found — run ./harvest.py first to "
+            f"{RED}✗{RESET} Error: {COMPOSE_FILE} not found — run ./harvest.py first to "
             "generate the root docker-compose.yaml.",
             file=sys.stderr,
         )
@@ -100,7 +104,7 @@ def main() -> None:
 
     if result.returncode == 125:
         print(
-            "Hint: the base/default images may not exist yet — run "
+            f"{YELLOW}⚠{RESET} Hint: the base/default images may not exist yet — run "
             "./harvest.py (and confirm the docker-compose build step) first.",
             file=sys.stderr,
         )

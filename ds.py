@@ -42,9 +42,12 @@ OVERRIDE_FILES: tuple[str, ...] = (
 
 SHELL: str = "bash"
 
+RED = "\033[31m"
+RESET = "\033[0m"
+
 
 def _die(message: str) -> None:
-    print(f"ds: {message}", file=sys.stderr)
+    print(f"{RED}✗{RESET} ds: {message}", file=sys.stderr)
     sys.exit(1)
 
 
