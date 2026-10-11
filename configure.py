@@ -80,7 +80,7 @@ def configure_env(env_file: Path, env_tmp: Path | None = None) -> None:
     if not env_file.exists():
         print(f"{RED}✗{RESET} {env_file} not found.")
         print(
-            f"{GREY}◦{RESET} Run till.py or harvest.py to create .env "
+            f"{GREY}◦{RESET} Run till or harvest to create .env "
             "from .env.template first."
         )
         sys.exit(1)

@@ -1,0 +1,17 @@
+[
+    {
+        "name": "node",
+        "enabled": true,
+        "templates": ["node"],
+        "interactive": true,
+        "ports": []
+    },
+    {
+        "name": "node_app",
+        "enabled": true,
+        "extends": "node",
+        "cmd": ["npm", "start"],
+        "ports": ["127.0.0.1:10080:8080"],
+        "env_vars": { "PORT": "8080", "HOST": "0.0.0.0" }
+    }
+]

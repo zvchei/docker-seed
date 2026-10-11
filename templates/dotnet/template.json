@@ -4,7 +4,7 @@
         "curl",
         "xz-utils",
         "dnsutils",
-        "libicu74"
+        "libicu78"
     ],
     "assets": [
         {

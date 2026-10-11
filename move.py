@@ -465,7 +465,7 @@ def write_rollback_report(
         ]
     )
     if original_env_text is None:
-        lines.append("# .env did not exist before move.py ran")
+        lines.append("# .env did not exist before move ran")
     else:
         lines.append(original_env_text)
     lines.extend(
@@ -490,7 +490,7 @@ def format_rollback_summary(
     report_path: Path | None,
 ) -> str:
     lines = [
-        f"move.py failed while moving {old_project} -> {new_project}.",
+        f"move failed while moving {old_project} -> {new_project}.",
         f"Failure: {failed_step}",
     ]
     if rollback_failures:
@@ -667,7 +667,7 @@ def move_project(
     print(f"{GREEN}✓{RESET} Move complete: {old_path} → {new_path}")
     print(f"{GREEN}✓{RESET} Volumes copied, images retagged, .env updated, and directory moved to {new_path}")
     print(
-        f"{GREY}◦{RESET} If any old resources could not be removed, clean them up with cleanup.py or docker manually."
+        f"{GREY}◦{RESET} If any old resources could not be removed, clean them up with cleanup or docker manually."
     )
 
 

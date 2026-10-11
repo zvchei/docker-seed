@@ -1,0 +1,17 @@
+[
+    {
+        "name": "web",
+        "enabled": true,
+        "templates": ["node"],
+        "cmd": ["npm", "run", "dev"],
+        "ports": ["127.0.0.1:5173:5173"]
+    },
+    {
+        "name": "web_ex_port",
+        "enabled": true,
+        "templates": ["ex_port"],
+        "network_mode": "service:web",
+        "restart": "always",
+        "env_vars": { "EXPOSE_PORT": "5173", "CONNECT_ADDRESS": "::1" }
+    }
+]

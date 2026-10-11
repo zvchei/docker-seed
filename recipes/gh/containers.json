@@ -1,0 +1,9 @@
+[
+    {
+        "name": "gh",
+        "enabled": true,
+        "templates": ["gh"],
+        "interactive": true,
+        "cmd": ["/bin/bash"]
+    }
+]

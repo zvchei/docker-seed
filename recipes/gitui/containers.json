@@ -1,0 +1,8 @@
+[
+    {
+        "name": "gitui",
+        "enabled": true,
+        "templates": ["git", "ssh_keys", "gitui"],
+        "interactive": true
+    }
+]

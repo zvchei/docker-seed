@@ -490,7 +490,7 @@ def run_transfer(
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        prog="transfer.py",
+        prog="transfer",
         description="Copy a directory or file between the host and a DockerSeed named volume.",
         epilog=USAGE,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -513,7 +513,7 @@ def main(argv: list[str] | None = None) -> None:
         print(f"{RED}✗{RESET} {exc}", file=sys.stderr)
         if not service_names:
             print(
-                f"{GREY}◦{RESET} No generated services found — run ./sow.py first.",
+                f"{GREY}◦{RESET} No generated services found — run sow first.",
                 file=sys.stderr,
             )
         print(USAGE, file=sys.stderr)
@@ -528,7 +528,7 @@ def main(argv: list[str] | None = None) -> None:
     compose_path = SERVICES_DIR / service / "docker-compose.yaml"
     if not compose_path.exists():
         print(
-            f"{RED}✗{RESET} {compose_path} not found — run ./sow.py first.",
+            f"{RED}✗{RESET} {compose_path} not found — run sow first.",
             file=sys.stderr,
         )
         sys.exit(1)

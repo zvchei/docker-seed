@@ -1,0 +1,17 @@
+[
+    {
+        "name": "code",
+        "enabled": true,
+        "templates": ["git", "ssh_keys", "copilot-cli", "vscode"],
+        "main": "vscode",
+        "ports": ["127.0.0.1:8080:8080"]
+    },
+    {
+        "name": "copilot",
+        "enabled": true,
+        "extends": "code",
+        "cmd": ["copilot"],
+        "interactive": true,
+        "ports": []
+    }
+]

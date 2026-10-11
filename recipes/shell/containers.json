@@ -1,0 +1,10 @@
+[
+    {
+        "name": "shell",
+        "enabled": true,
+        "templates": [],
+        "apt_packages": ["less", "curl", "jq"],
+        "cmd": ["/bin/bash"],
+        "interactive": true
+    }
+]

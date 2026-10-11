@@ -1,0 +1,32 @@
+[
+    {
+        "name": "huggingface",
+        "enabled": true,
+        "templates": ["huggingface-cli"],
+        "volumes": { "models": "models" },
+        "cmd": ["../env/bin/hf", "download", "Qwen/Qwen2.5-1.5B-Instruct-GGUF", "qwen2.5-1.5b-instruct-q4_k_m.gguf", "--local-dir", "../models"]
+    },
+    {
+        "name": "llama_cpp",
+        "enabled": true,
+        "templates": ["llama-cpp"],
+        "profile": "gpu",
+        "ports": [],
+        "networks": [{"name": "llama_local", "internal": true}]
+    },
+    {
+        "name": "llama_gateway",
+        "enabled": true,
+        "templates": ["ex_port"],
+        "ports": ["127.0.0.1:8090:8090"],
+        "env_vars": { "EXPOSE_PORT": "8090", "CONNECT_ADDRESS": "llama_cpp" },
+        "networks": [{"name": "llama_local", "internal": true}, {"name": "default"}]
+    },
+    {
+        "name": "pi_local",
+        "enabled": true,
+        "templates": ["git", "pi"],
+        "interactive": true,
+        "networks": [{"name": "llama_local", "internal": true}]
+    }
+]

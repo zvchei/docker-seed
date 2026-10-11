@@ -1,0 +1,9 @@
+[
+    {
+        "name": "acli",
+        "enabled": true,
+        "templates": ["acli"],
+        "interactive": true,
+        "cmd": ["/bin/bash"]
+    }
+]

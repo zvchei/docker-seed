@@ -1,0 +1,8 @@
+[
+    {
+        "name": "fresh",
+        "enabled": true,
+        "templates": ["fresh"],
+        "interactive": true
+    }
+]

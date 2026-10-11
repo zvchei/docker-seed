@@ -1,48 +1,56 @@
 # DockerSeed
 
-DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `./harvest.py`.
+DockerSeed is a lightweight, Docker-based environment for secure development in isolated containers. Each service has its own image. The root `docker-compose.yaml` is **generated** when you run `harvest`.
 
-`sow.py`, `tend.py`, `harvest.py`, `configure.py`, `cleanup.py`, `transfer.py`, `backup.py`, and `restore.py` operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. `move.py` accepts an explicit project directory and target. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
+`sow`, `tend`, `harvest`, `configure`, `cleanup`, `transfer`, `backup`, and `restore` operate on the **current working directory**: they read `containers.json` from `$(pwd)`, write generated files under `$(pwd)`, and download assets into `$(pwd)/assets`. `move` accepts an explicit project directory and target. Built-in templates and the shared `common/` base still come from the DockerSeed repository; local `./templates` entries override same-named built-ins.
 
 ## How services get into the tree
 
-Add or edit entries in `containers.json`, optionally add project-specific templates under `./templates/`, then run `sow.py`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them. Names beginning with `@` are abstract merge sources and are never generated.
+Add or edit entries in `containers.json`, optionally add project-specific templates under `./templates/`, then run `sow`. That writes `services/<name>/Dockerfile` and `services/<name>/docker-compose.yaml`. Entries with `"enabled": false` are skipped; they do not overwrite existing `services/<name>/` until you enable them. Names beginning with `@` are abstract merge sources and are never generated.
 
 ## Quick start
 
-1. **Clone** this repository (or point at an existing clone of the scripts).
-
-2. **Scaffold** a project directory (`till.py` writes `containers.json`, `.env` from `.env.template`, and related files, then runs `configure.py`; it never overwrites existing files):
+1. **Clone** this repository (or point at an existing clone of the scripts) and put it on your `PATH`, so the scripts can be called by name (each `<name>.py` has a `<name>` symlink):
 
    ```bash
-   /path/to/docker-seed/till.py              # current directory
-   /path/to/docker-seed/till.py my-project   # create/use ./my-project
+   export PATH="/path/to/docker-seed:$PATH"
+   ```
+
+2. **Scaffold** a project directory (`till` writes `containers.json`, `.env` from `.env.template`, and related files, then runs `configure`; it never overwrites existing files):
+
+   ```bash
+   till              # current directory
+   till my-project   # create/use ./my-project
+   ```
+
+   To start from a ready-made stack instead of the empty default, copy a recipe over the generated file (see [`recipes/`](recipes/README.md)):
+
+   ```bash
+   cp /path/to/docker-seed/recipes/jupyter/containers.json my-project/
    ```
 
 3. In your project directory, **generate services**:
 
    ```bash
-   /path/to/docker-seed/sow.py
-   # or, from the repo itself:
-   ./sow.py
+   sow
    ```
 
-4. **Manage assets** (optional, only if `sow.py` wrote an `assets.json`):
+4. **Manage assets** (optional, only if `sow` wrote an `assets.json`):
 
    ```bash
-   /path/to/docker-seed/tend.py
+   tend
    ```
 
-5. **Bake the stack** (syncs `common/`, regenerates root `docker-compose.yaml`; if `.env` is missing, seeds it from `.env.template` and runs `configure.py`; can run `docker-compose build`):
+5. **Bake the stack** (syncs `common/`, regenerates root `docker-compose.yaml`; if `.env` is missing, seeds it from `.env.template` and runs `configure`; can run `docker-compose build`):
 
    ```bash
-   /path/to/docker-seed/harvest.py
+   harvest
    ```
 
    To walk through `.env` again later:
 
    ```bash
-   /path/to/docker-seed/configure.py
+   configure
    ```
 
 6. **Run a service** (pick a name from `containers.json`):
@@ -61,22 +69,22 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
    google-chrome --new --kiosk http://localhost:8080
    ```
 
-## Generating services from templates (`sow.py`)
+## Generating services from templates (`sow`)
 
-`sow.py` reads **`containers.json`** from the current directory and, for each enabled entry, merges the listed templates into `services/<name>/`. Template lookup order:
+`sow` reads **`containers.json`** from the current directory and, for each enabled entry, merges the listed templates into `services/<name>/`. Template lookup order:
 
 1. `./templates/<name>/` in the current working directory (wins on name clash)
 2. `<docker-seed>/templates/<name>/` from the repository that contains the script
 
-`sow.py` / `harvest.py` also sync the repo’s `common/` directory into `./common/` when the working directory is not the repo itself, so local builds stay self-contained. The repo ships `.env.template` only; `till.py` / `harvest.py` copy it to `./.env` when missing (`harvest.py` runs `configure.py` only in that case).
+`sow` / `harvest` also sync the repo’s `common/` directory into `./common/` when the working directory is not the repo itself, so local builds stay self-contained. The repo ships `.env.template` only; `till` / `harvest` copy it to `./.env` when missing (`harvest` runs `configure` only in that case).
 
 **Workflow:**
 
 1. Edit **`containers.json`** in the project directory - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
-2. Run **`sow.py`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry; writes `assets.json` when needed.
-3. **(Optional)** Run **`tend.py`** - download asset files listed in `assets.json` into `./assets/`.
-4. Run **`harvest.py`** - regenerates the root `docker-compose.yaml`; seeds and configures `.env` only if it was missing; optionally builds images.
-5. **(Optional)** Run **`configure.py`** anytime to review or update `.env` values.
+2. Run **`sow`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry; writes `assets.json` when needed.
+3. **(Optional)** Run **`tend`** - download asset files listed in `assets.json` into `./assets/`.
+4. Run **`harvest`** - regenerates the root `docker-compose.yaml`; seeds and configures `.env` only if it was missing; optionally builds images.
+5. **(Optional)** Run **`configure`** anytime to review or update `.env` values.
 
 ### Template layout
 
@@ -227,28 +235,28 @@ This copies the image, volumes, ports, and other settings from `my-container`. Y
 
 ### Asset management
 
-Use **`tend.py`** to download asset files listed in `./assets.json` into `./assets/`. These files can then be copied into containers during build.
+Use **`tend`** to download asset files listed in `./assets.json` into `./assets/`. These files can then be copied into containers during build.
 
-Use **`harvest.py`** to orchestrate setup, compose generation, optional first-time `.env` seeding/configure, and optional image builds. Use **`configure.py`** to review or update `.env` anytime.
+Use **`harvest`** to orchestrate setup, compose generation, optional first-time `.env` seeding/configure, and optional image builds. Use **`configure`** to review or update `.env` anytime.
 
-### Copy directories or files into or out of volumes (`transfer.py`)
+### Copy directories or files into or out of volumes (`transfer`)
 
-Named volumes persist even when a service is not running. `transfer.py` copies a host directory or file into a volume (import) or the other way (export) using a one-shot helper container. Direction is inferred from the arguments:
+Named volumes persist even when a service is not running. `transfer` copies a host directory or file into a volume (import) or the other way (export) using a one-shot helper container. Direction is inferred from the arguments:
 
 ```bash
 # Directory as directory — contents of ./dir become volume path dir/
-./transfer.py ./dir service:volume:dir
+transfer ./dir service:volume:dir
 
 # Directory into directory — contents of ./dir go into dest/
-./transfer.py ./dir service:volume:dest/
+transfer ./dir service:volume:dest/
 
 # File as file — exact path (rename OK)
-./transfer.py ./file.ext service:volume:file.ext
-./transfer.py service:volume:file.ext ./path/to/other.ext
+transfer ./file.ext service:volume:file.ext
+transfer service:volume:file.ext ./path/to/other.ext
 
 # File into directory — trailing / forces dir even if missing
-./transfer.py ./file.ext service:volume:dest/
-./transfer.py service:volume:file.ext ./dest/
+transfer ./file.ext service:volume:dest/
+transfer service:volume:file.ext ./dest/
 ```
 
 The spec is `<service>:<volume>[:<path>]`. `volume` is the Compose key (`root`, `cache`, or a container-specific name such as `chrome_local`). `<path>` is inside that volume: omitted or `.` for the volume root, a relative path, or an absolute container path under the volume mount.
@@ -257,30 +265,30 @@ For files, destinations follow cp/rsync rules: if the destination exists as a di
 
 If the target already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing.
 
-### Moving a project (`move.py`)
+### Moving a project (`move`)
 
 ```bash
-./move.py <project> <target> [--force]
+move <project> <target> [--force]
 ```
 
 `<project>` is a path to a directory containing `containers.json`. A `<target>` ending in `/` is an existing directory to move the project into; without a trailing `/`, it is the exact destination path:
 
 ```bash
-./move.py ./my-project ../
-./move.py ./my-project ../newplace/newname
+move ./my-project ../
+move ./my-project ../newplace/newname
 ```
 
 The final destination must not already exist; the command never overwrites it. Moving into a directory preserves the project's Docker identity. If the exact destination changes the project name, Docker volumes are copied to the new `<project>_*` prefix, images are retagged (`<project>-*`), and `.env` `COMPOSE_PROJECT_NAME` is updated. These changes are preflight-checked and rolled back on failure. `--force` skips the running-container check and allows reusing an existing Docker resource prefix, but never bypasses the destination-path collision check.
 
-### Archiving and restoring a project (`backup.py` / `restore.py`)
+### Archiving and restoring a project (`backup` / `restore`)
 
-`backup.py` packages a project's source-of-truth files (`containers.json`, `.env`, local `./templates/` overlay, `assets.json`, optionally `secrets/`) together with the live contents of every Docker volume it owns into a single restorable archive:
+`backup` packages a project's source-of-truth files (`containers.json`, `.env`, local `./templates/` overlay, `assets.json`, optionally `secrets/`) together with the live contents of every Docker volume it owns into a single restorable archive:
 
 ```bash
-./backup.py [output.tar] [--force] [--include-secrets] [--no-secrets]
+backup [output.tar] [--force] [--include-secrets] [--no-secrets]
 ```
 
-If `output.tar` is omitted, it defaults to `./<project>-backup-<timestamp>.tar`. The archive is written uncompressed so `backup.py` never sits silently churning through a slow gzip pass; compress it afterwards if you want to save space. Plain `gzip` gives no progress feedback — pipe through `pv` for a live progress bar instead:
+If `output.tar` is omitted, it defaults to `./<project>-backup-<timestamp>.tar`. The archive is written uncompressed so `backup` never sits silently churning through a slow gzip pass; compress it afterwards if you want to save space. Plain `gzip` gives no progress feedback — pipe through `pv` for a live progress bar instead:
 
 ```bash
 pv backup.tar | gzip > backup.tar.gz
@@ -288,13 +296,13 @@ pv backup.tar | gzip > backup.tar.gz
 
 If `./secrets/` contains real files (not just placeholders), you're asked whether to include them, unless `--include-secrets`/`--no-secrets` is given. The archive is assembled in a temp staging directory and only moved into place atomically on success, so a failure never leaves a partial backup file behind.
 
-`restore.py` recreates a project from such an archive, regenerating `services/` and the root `docker-compose.yaml` via `sow.py`/`harvest.py`. Both plain `.tar` and gzip-compressed `.tar.gz` archives are accepted:
+`restore` recreates a project from such an archive, regenerating `services/` and the root `docker-compose.yaml` via `sow`/`harvest`. Both plain `.tar` and gzip-compressed `.tar.gz` archives are accepted:
 
 ```bash
-./restore.py <archive.tar[.gz]> [directory] [--name NEW_NAME] [--force]
+restore <archive.tar[.gz]> [directory] [--name NEW_NAME] [--force]
 ```
 
-`directory` defaults to the current directory (created if it doesn't exist, with confirmation). The project keeps its original name unless `--name` is given. Docker volumes are recreated and their data restored before `sow.py`/`harvest.py` run. As with `move.py`, every step is preflight-checked and ledgered for rollback; if an automatic rollback step fails, a `RESTORE-ROLLBACK-<project>-<timestamp>.txt` file with manual recovery commands is written.
+`directory` defaults to the current directory (created if it doesn't exist, with confirmation). The project keeps its original name unless `--name` is given. Docker volumes are recreated and their data restored before `sow`/`harvest` run. As with `move`, every step is preflight-checked and ledgered for rollback; if an automatic rollback step fails, a `RESTORE-ROLLBACK-<project>-<timestamp>.txt` file with manual recovery commands is written.
 
 ## License
 

@@ -157,15 +157,12 @@ def confirm_create(target: Path) -> bool:
 
 
 def print_next_steps(target: Path, cwd: Path) -> None:
-    sow = SCRIPT_DIR / "sow.py"
-    tend = SCRIPT_DIR / "tend.py"
-    harvest = SCRIPT_DIR / "harvest.py"
     print(f"\n{BLUE}⚙{RESET} Next:")
     if target.resolve() != cwd.resolve():
         print(f"\t{GREY}◦{RESET} cd {target}")
-    print(f"\t{GREY}◦{RESET} {sow}")
-    print(f"\t{GREY}◦{RESET} {tend}   # if sow.py wrote assets.json")
-    print(f"\t{GREY}◦{RESET} {harvest}")
+    print(f"\t{GREY}◦{RESET} sow")
+    print(f"\t{GREY}◦{RESET} tend   # if sow wrote assets.json")
+    print(f"\t{GREY}◦{RESET} harvest")
 
 
 def main() -> None:

@@ -1,0 +1,8 @@
+[
+    {
+        "name": "pi",
+        "enabled": true,
+        "templates": ["git", "ssh_keys", "pi"],
+        "interactive": true
+    }
+]

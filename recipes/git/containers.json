@@ -1,0 +1,9 @@
+[
+    {
+        "name": "git",
+        "enabled": true,
+        "templates": ["git", "ssh_keys"],
+        "cmd": ["/bin/bash"],
+        "interactive": true
+    }
+]

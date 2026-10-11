@@ -1,0 +1,21 @@
+[
+    {
+        "name": "ollama",
+        "enabled": true,
+        "templates": ["ollama"],
+        "profile": "gpu",
+        "restart": "unless-stopped",
+        "ports": ["127.0.0.1:11434:11434"],
+        "networks": [{"name": "ollama_network", "external": true}]
+    },
+    {
+        "name": "ollama_chat",
+        "enabled": true,
+        "extends": "ollama",
+        "cmd": ["run", "llama3.2"],
+        "interactive": true,
+        "ports": [],
+        "restart": "no",
+        "env_vars": { "OLLAMA_HOST": "http://ollama:11434" }
+    }
+]

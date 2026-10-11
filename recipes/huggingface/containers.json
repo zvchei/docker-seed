@@ -1,0 +1,9 @@
+[
+    {
+        "name": "huggingface",
+        "enabled": true,
+        "templates": ["huggingface-cli"],
+        "interactive": true,
+        "cmd": ["/bin/bash"]
+    }
+]

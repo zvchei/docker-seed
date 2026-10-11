@@ -1,0 +1,9 @@
+[
+    {
+        "name": "az",
+        "enabled": true,
+        "templates": ["az"],
+        "interactive": true,
+        "cmd": ["/bin/bash"]
+    }
+]

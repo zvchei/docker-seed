@@ -1,0 +1,32 @@
+[
+    {
+        "name": "dotnet",
+        "enabled": true,
+        "templates": ["dotnet"],
+        "cmd": ["/bin/bash"],
+        "interactive": true,
+        "ports": [],
+        "volumes": {
+            "dotnet_home": ".dotnet",
+            "nuget_packages": ".nuget/packages",
+            "nuget_config": ".nuget/NuGet",
+            "nuget_local": ".local/share/NuGet",
+            "aspnet_https": ".aspnet/https",
+            "dotnet_tmp": ".local/share/tmp",
+            "dotnet_templates": ".templateengine"
+        },
+        "env_vars": {
+            "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+            "DOTNET_NOLOGO": "1",
+            "TMPDIR": "/home/${CONTAINER_USER}/.local/share/tmp",
+            "ASPNETCORE_URLS": "http://0.0.0.0:5000"
+        }
+    },
+    {
+        "name": "dotnet_app",
+        "enabled": true,
+        "extends": "dotnet",
+        "cmd": ["dotnet", "run"],
+        "ports": ["127.0.0.1:5000:5000"]
+    }
+]

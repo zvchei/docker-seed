@@ -74,7 +74,7 @@ def main() -> None:
 
     if not COMPOSE_FILE.exists():
         print(
-            f"{RED}✗{RESET} Error: {COMPOSE_FILE} not found — run ./harvest.py first to "
+            f"{RED}✗{RESET} Error: {COMPOSE_FILE} not found — run harvest first to "
             "generate the root docker-compose.yaml.",
             file=sys.stderr,
         )
@@ -105,7 +105,7 @@ def main() -> None:
     if result.returncode == 125:
         print(
             f"{YELLOW}⚠{RESET} Hint: the base/default images may not exist yet — run "
-            "./harvest.py (and confirm the docker-compose build step) first.",
+            "harvest (and confirm the docker-compose build step) first.",
             file=sys.stderr,
         )
 

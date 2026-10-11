@@ -3,7 +3,9 @@
     "requires": ["python"],
     "ports": ["8888:8888"],
     "volumes": {
-        "jupyter": ".jupyter"
+        "jupyter": ".jupyter",
+        "jupyter_data": ".local/share/jupyter",
+        "ipython": ".ipython"
     },
     "cmd": ["bash", "-c", "source ../env/bin/activate; jupyter lab --ip=0.0.0.0"]
 }

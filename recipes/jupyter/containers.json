@@ -1,0 +1,8 @@
+[
+    {
+        "name": "jupyter",
+        "enabled": true,
+        "templates": ["jupyter"],
+        "ports": ["127.0.0.1:8888:8888"]
+    }
+]

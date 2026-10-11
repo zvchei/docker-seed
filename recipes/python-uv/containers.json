@@ -1,0 +1,18 @@
+[
+    {
+        "name": "python312",
+        "enabled": true,
+        "templates": ["python-uv"],
+        "build_args": { "PYTHON_VERSION": "3.12" },
+        "cmd": ["/bin/bash"],
+        "interactive": true
+    },
+    {
+        "name": "python314",
+        "enabled": true,
+        "templates": ["python-uv"],
+        "build_args": { "PYTHON_VERSION": "3.14" },
+        "cmd": ["/bin/bash"],
+        "interactive": true
+    }
+]

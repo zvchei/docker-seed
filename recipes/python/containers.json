@@ -1,0 +1,9 @@
+[
+    {
+        "name": "python",
+        "enabled": true,
+        "templates": ["python"],
+        "cmd": ["/bin/bash"],
+        "interactive": true
+    }
+]

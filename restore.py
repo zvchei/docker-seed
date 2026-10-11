@@ -229,7 +229,7 @@ def load_manifest(extract_dir: Path) -> dict[str, Any]:
     manifest_path = extract_dir / "metadata" / "backup.json"
     if not manifest_path.exists():
         raise RestoreError(
-            f"Archive is missing metadata/backup.json (not a backup.py archive?)"
+            f"Archive is missing metadata/backup.json (not a backup archive?)"
         )
     try:
         manifest = json.loads(manifest_path.read_text())
@@ -535,25 +535,25 @@ def main(argv: list[str] | None = None) -> None:
 
         sow_script = SCRIPT_DIR / "sow.py"
         services_existed = (target / "services").exists()
-        run_subprocess_step(sow_script, target, "sow.py")
+        run_subprocess_step(sow_script, target, "sow")
         if not services_existed:
             ledger.append(
                 "Remove generated services/",
                 lambda: shutil.rmtree(target / "services", ignore_errors=True),
             )
-        succeeded_steps.append("Ran sow.py")
-        print(f"{GREEN}✓{RESET} Ran sow.py")
+        succeeded_steps.append("Ran sow")
+        print(f"{GREEN}✓{RESET} Ran sow")
 
         harvest_script = SCRIPT_DIR / "harvest.py"
         compose_existed = (target / "docker-compose.yaml").exists()
-        run_subprocess_step(harvest_script, target, "harvest.py")
+        run_subprocess_step(harvest_script, target, "harvest")
         if not compose_existed:
             ledger.append(
                 "Remove generated docker-compose.yaml",
                 lambda: (target / "docker-compose.yaml").unlink(missing_ok=True),
             )
-        succeeded_steps.append("Ran harvest.py")
-        print(f"{GREEN}✓{RESET} Ran harvest.py")
+        succeeded_steps.append("Ran harvest")
+        print(f"{GREEN}✓{RESET} Ran harvest")
     except Exception as exc:
         failed_step = str(exc)
         rollback_failures = ledger.rollback()
@@ -583,7 +583,7 @@ def main(argv: list[str] | None = None) -> None:
     shutil.rmtree(extract_dir, ignore_errors=True)
     print(f"{GREEN}✓{RESET} Restore complete: project '{project}' in {target}")
     print(f"{GREY}◦{RESET} Volumes restored: {len(created_volumes)}")
-    print(f"{GREY}◦{RESET} Next: cd {target} && docker-compose build (if not already built by harvest.py)")
+    print(f"{GREY}◦{RESET} Next: cd {target} && docker-compose build (if not already built by harvest)")
 
 
 if __name__ == "__main__":
