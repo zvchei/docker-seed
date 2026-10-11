@@ -11,11 +11,11 @@ _ds() {
     local cur=${COMP_WORDS[COMP_CWORD]}
     case $COMP_CWORD in
         1)
-            mapfile -t COMPREPLY < <(compgen -W "r run u up s shell l list" -- "$cur")
+            mapfile -t COMPREPLY < <(compgen -W "run up shell list" -- "$cur")
             ;;
         2)
             case ${COMP_WORDS[1]} in
-                r|run|u|up|s|shell)
+                run|up|shell)
                     mapfile -t COMPREPLY < <(compgen -W "$(_ds_services)" -- "$cur")
                     ;;
             esac
@@ -23,7 +23,7 @@ _ds() {
         3)
             # The command to run in place of the service's own.
             case ${COMP_WORDS[1]} in
-                s|shell) mapfile -t COMPREPLY < <(compgen -c -- "$cur") ;;
+                shell) mapfile -t COMPREPLY < <(compgen -c -- "$cur") ;;
             esac
             ;;
     esac
