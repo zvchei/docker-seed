@@ -89,7 +89,7 @@ class SeedServiceTemplateTests(unittest.TestCase):
             },
             {
                 "name": "consumer",
-                "templates": ["service:@shared", "template:python"],
+                "templates": ["service:@shared", "python"],
                 "env_vars": {"ORDER": "child"},
             },
         ]
@@ -121,37 +121,37 @@ class SeedServiceTemplateTests(unittest.TestCase):
 
         self.assertIn("python3-venv", merged["apt_packages"])
 
-    def test_ambiguous_unqualified_reference_requires_qualifier(self) -> None:
+    def test_unqualified_reference_resolves_to_template_despite_same_named_service(self) -> None:
         containers = [
-            {"name": "python", "templates": []},
+            {"name": "python", "templates": [], "env_vars": {"SOURCE": "service"}},
             {"name": "consumer", "templates": ["python"]},
+        ]
+
+        merged = sow.build_merged_for_container(containers[1], containers)
+
+        self.assertIn("python3-venv", merged["apt_packages"])
+        self.assertNotIn("SOURCE", merged.get("env_vars", {}))
+
+    def test_unqualified_service_name_is_rejected(self) -> None:
+        containers = [
+            {"name": "shared", "templates": []},
+            {"name": "consumer", "templates": ["shared"]},
         ]
 
         with self.assertRaises(SystemExit):
             sow.build_merged_for_container(containers[1], containers)
 
-    def test_qualified_references_select_service_or_template(self) -> None:
-        containers = [
-            {
-                "name": "python",
-                "templates": [],
-                "env_vars": {"SOURCE": "service"},
-            },
-            {
-                "name": "service_consumer",
-                "templates": ["service:python"],
-            },
-            {
-                "name": "template_consumer",
-                "templates": ["template:python"],
-            },
-        ]
+    def test_unknown_qualifier_is_rejected(self) -> None:
+        container = {"name": "consumer", "templates": ["svc:python"]}
 
-        service_merged = sow.build_merged_for_container(containers[1], containers)
-        template_merged = sow.build_merged_for_container(containers[2], containers)
+        with self.assertRaises(SystemExit):
+            sow.build_merged_for_container(container, [container])
 
-        self.assertEqual(service_merged["env_vars"]["SOURCE"], "service")
-        self.assertIn("python3-venv", template_merged["apt_packages"])
+    def test_template_prefix_is_rejected(self) -> None:
+        container = {"name": "consumer", "templates": ["template:python"]}
+
+        with self.assertRaises(SystemExit):
+            sow.build_merged_for_container(container, [container])
 
     def test_service_reference_does_not_reuse_image(self) -> None:
         containers = [

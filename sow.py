@@ -294,68 +294,52 @@ def find_container(
 
 def resolve_merge_source(
     reference: Any,
-    container_name: str,
     all_containers: list[dict[str, Any]],
 ) -> tuple[str, str]:
-    """Resolve a templates[] item to ('template'|'service', name)."""
+    """Resolve a templates[] item to ('template'|'service', name).
+
+    Plain names always refer to templates, so adding a service or a template
+    can never make an existing reference ambiguous. Services must be written as
+    'service:<name>', except abstract '@' services, which cannot collide with a
+    template name.
+    """
     if not isinstance(reference, str) or not reference:
         print(f"{RED}✗{RESET} Error: 'templates' entries must be non-empty strings.", file=sys.stderr)
         sys.exit(1)
 
     qualifier, separator, qualified_name = reference.partition(":")
-    if separator and qualifier in {"template", "service"}:
-        if not qualified_name:
-            print(f"{RED}✗{RESET} Error: template reference '{reference}' has no name.", file=sys.stderr)
+    if separator:
+        if qualifier != "service" or not qualified_name:
+            print(
+                f"{RED}✗{RESET} Error: invalid reference '{reference}'. "
+                "Use '<template>' or 'service:<name>'.",
+                file=sys.stderr,
+            )
             sys.exit(1)
-        if qualifier == "template":
-            if not template_exists(qualified_name):
-                print(f"{RED}✗{RESET} Error: template '{qualified_name}' does not exist.", file=sys.stderr)
-                sys.exit(1)
-            return "template", qualified_name
-
         if find_container(qualified_name, all_containers) is None:
             print(
-                f"Error: service '{qualified_name}' does not exist in containers.json."
+                f"{RED}✗{RESET} Error: service '{qualified_name}' does not exist in containers.json.",
+                file=sys.stderr,
             )
             sys.exit(1)
         return "service", qualified_name
 
-    if separator:
-        print(
-            f"Error: unknown templates qualifier '{qualifier}:' in '{reference}'. "
-            "Use 'template:<name>' or 'service:<name>'."
-        )
-        sys.exit(1)
-
-    has_template: bool = template_exists(reference)
-    has_service: bool = find_container(reference, all_containers) is not None
-
-    # Existing configurations commonly give a service and its primary template
-    # the same name. Such a service cannot merge itself, so preserve template lookup.
-    if reference == container_name:
-        if has_template:
-            return "template", reference
-        print(
-            f"Error: service '{container_name}' cannot use itself as a template. "
-            f"Use a template name or qualify another service as 'service:<name>'."
-        )
-        sys.exit(1)
-
-    if has_template and has_service:
-        print(
-            f"Error: '{reference}' names both a template and a service. "
-            f"Use 'template:{reference}' or 'service:{reference}'."
-        )
-        sys.exit(1)
-    if has_service:
+    if is_abstract(reference):
+        if find_container(reference, all_containers) is None:
+            print(
+                f"{RED}✗{RESET} Error: service '{reference}' does not exist in containers.json.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         return "service", reference
-    if has_template:
-        return "template", reference
 
-    print(
-        f"Error: '{reference}' is neither a template nor a service in containers.json."
-    )
-    sys.exit(1)
+    if not template_exists(reference):
+        hint: str = ""
+        if find_container(reference, all_containers) is not None:
+            hint = f" Did you mean 'service:{reference}'?"
+        print(f"{RED}✗{RESET} Error: template '{reference}' does not exist.{hint}", file=sys.stderr)
+        sys.exit(1)
+    return "template", reference
 
 
 def merge_container_sources(
@@ -372,9 +356,7 @@ def merge_container_sources(
     merged: Merged = {"root_fragments": [], "user_fragments": []}
     seen_templates: set[str] = set()
     for reference in references:
-        source_type, source_name = resolve_merge_source(
-            reference, container["name"], all_containers
-        )
+        source_type, source_name = resolve_merge_source(reference, all_containers)
         if source_type == "template":
             resolved_names = resolve_templates([source_name])
             new_names = [name for name in resolved_names if name not in seen_templates]

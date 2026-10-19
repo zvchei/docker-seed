@@ -157,7 +157,7 @@ Each entry combines one or more templates into one service:
 |-------|------|----------|-------------|
 | `name` | `string` | yes | Service name (use `_` not `+` in names). |
 | `enabled` | `boolean` | no | If `false`, this entry is skipped (default: `true`). |
-| `templates` | `string[]` | no | Templates or service configurations to merge; order matters. Use `template:<name>` or `service:<name>` to resolve an ambiguous name. |
+| `templates` | `string[]` | no | Templates or service configurations to merge; order matters. Plain names are templates; reference a service as `service:<name>` (abstract `@` services may be written plainly). |
 | `extends` | `string` | no | Extend an existing service by name, reusing its image and settings; can be overridden by fields in this entry. |
 | `main` | `string` | no | Name of the template whose `cmd` is used as the default (see below). |
 | `cmd` | `string[]` | no | Explicit command override, e.g. `["node", "server.js"]`. |
@@ -205,16 +205,18 @@ Items in `templates` are merged from left to right, then fields declared
 directly on the service are applied last. An item can refer to either a
 template directory or another service in `containers.json`.
 
-When both namespaces contain the same name, qualify the reference:
+A plain name always refers to a template, so a service may share a
+template's name without breaking other services that use that template, and
+adding a new template never makes an existing reference ambiguous. Reference a
+non-abstract service with the `service:` prefix:
 
 ```json
-"templates": ["service:shared", "template:python"]
+"templates": ["service:shared", "python"]
 ```
 
-An unqualified reference matching the current service's own name remains a
-template reference, preserving configurations such as
-`{"name": "python", "templates": ["python"]}`. A template manifest's
-`requires` entries continue to refer only to template directories.
+Abstract (`@`) services may be referenced without the prefix, since template
+names cannot start with `@`. A template manifest's `requires` entries continue
+to refer only to template directories.
 
 Use service composition to merge configuration while building a new image.
 Use `extends` when the child should reuse an existing service's image.

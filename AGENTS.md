@@ -103,7 +103,7 @@ When `sow` merges multiple templates for a container:
 - **Dicts** (e.g. `env_vars`, `build_args`) → merged; later template keys overwrite earlier ones
 - **`requires`** in `template.json` → dependency resolution; required templates are resolved and prepended automatically
 - **Service references** in `containers.json` `templates` → merge the referenced service's fully resolved configuration without reusing its image
-- **Ambiguous names** → qualify as `template:<name>` or `service:<name>`; a service's own unqualified name resolves to its same-named template
+- **Reference names** → a plain name is always a template; services must be written as `service:<name>`, except abstract `@` services, which may be written plainly
 - **Direct container fields** → applied last, after all entries in `templates`
 - All others as described above.
 
