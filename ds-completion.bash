@@ -8,9 +8,17 @@ _ds_services() {
 }
 
 _ds() {
-    local cur=${COMP_WORDS[COMP_CWORD]}
+    # Treat "service:<name>" as one word; ':' is in COMP_WORDBREAKS by default.
+    local cur cword words
+    if declare -F _get_comp_words_by_ref >/dev/null; then
+        _get_comp_words_by_ref -n : cur cword words
+    else
+        cur=${COMP_WORDS[COMP_CWORD]} cword=$COMP_CWORD words=("${COMP_WORDS[@]}")
+    fi
+    local COMP_CWORD=$cword COMP_WORDS=("${words[@]}")
+
     if ((COMP_CWORD == 1)); then
-        mapfile -t COMPREPLY < <(compgen -W "run up shell list add" -- "$cur")
+        mapfile -t COMPREPLY < <(compgen -W "run up shell list add add-template" -- "$cur")
         return
     fi
 
@@ -23,6 +31,18 @@ _ds() {
         add)
             if ((COMP_CWORD == 2)); then
                 mapfile -t COMPREPLY < <(compgen -W "$("$_DS_PY" add 2>/dev/null)" -- "$cur")
+            fi
+            ;;
+        add-template)
+            if ((COMP_CWORD == 2)); then
+                mapfile -t COMPREPLY < <(compgen -W "$("$_DS_PY" add-template 2>/dev/null)" -- "$cur")
+            elif ((COMP_CWORD == 3)); then
+                mapfile -t COMPREPLY < <(compgen -W "$("$_DS_PY" add-template "${COMP_WORDS[2]}" 2>/dev/null)" -- "$cur")
+                # Bash replaces only the part after the last ':'; drop what it keeps.
+                if [[ $COMP_WORDBREAKS == *:* && $cur == *:* ]]; then
+                    local prefix=${cur%"${cur##*:}"}
+                    COMPREPLY=("${COMPREPLY[@]#"$prefix"}")
+                fi
             fi
             ;;
         shell)

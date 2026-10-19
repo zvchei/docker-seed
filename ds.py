@@ -10,6 +10,11 @@ ds.py — Starts a service with extra arguments appended to its command.
     ds.py list                        enabled services from the nearest containers.json
     ds.py add [recipe]                append a recipe's services to the nearest
                                       containers.json, or list recipes when none is given
+    ds.py add-template [service [reference]]
+                                      insert a template, @abstract service or
+                                      service:<name> before the last of a service's
+                                      templates, so its command is kept; with
+                                      fewer arguments, list the possible values
 
 <cmd> is the service's resolved command: the compose `command:` if set,
 otherwise the image's CMD. The entrypoint is kept as is. Without extra
@@ -18,12 +23,16 @@ and runs the given command (or bash) in a new container of the service.
 `--serve` passes `--service-ports` to `docker compose run`, binding the
 service's published ports as in `up`. `add` refuses to touch containers.json
 when any of the recipe's service names is already defined there.
+`add-template` refuses references that are unknown, already listed, or would
+make a service include itself, and services that use `extends` (they reuse
+their parent's image, so templates would have no effect).
 
 Works in any directory where `docker compose` finds the project.
 """
 
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -233,6 +242,184 @@ def add(args: list[str]) -> None:
     print(f"See {RECIPES_DIR / recipe / 'README.md'} for its extra steps, then run sow and harvest.")
 
 
+_DECODER = json.JSONDecoder()
+_WHITESPACE = re.compile(r"\s*")
+
+
+def _skip(text: str, i: int) -> int:
+    return _WHITESPACE.match(text, i).end()  # type: ignore[union-attr]
+
+
+def _array_items(text: str, start: int) -> list[tuple[int, int]]:
+    """Returns the (start, end) spans of the items of the JSON array at text[start]."""
+    spans: list[tuple[int, int]] = []
+    i = _skip(text, start + 1)
+    while text[i] != "]":
+        _, end = _DECODER.raw_decode(text, i)
+        spans.append((i, end))
+        i = _skip(text, end)
+        if text[i] == ",":
+            i = _skip(text, i + 1)
+    return spans
+
+
+def _object_members(text: str, start: int) -> dict[str, tuple[int, int, int]]:
+    """Returns key → (key_start, value_start, value_end) for the JSON object at text[start]."""
+    members: dict[str, tuple[int, int, int]] = {}
+    i = _skip(text, start + 1)
+    while text[i] != "}":
+        key, key_end = _DECODER.raw_decode(text, i)
+        value_start = _skip(text, _skip(text, key_end) + 1)
+        _, value_end = _DECODER.raw_decode(text, value_start)
+        members[key] = (i, value_start, value_end)
+        i = _skip(text, value_end)
+        if text[i] == ",":
+            i = _skip(text, i + 1)
+    return members
+
+
+def _line_indent(text: str, i: int) -> str | None:
+    """Returns the indentation before text[i], or None if other text precedes it on its line."""
+    line_start = text.rfind("\n", 0, i) + 1
+    indent = text[line_start:i]
+    return indent if not indent.strip() else None
+
+
+def _insert_template(text: str, index: int, reference: str) -> str:
+    """Inserts reference before the last of the index-th container's templates, keeping the layout."""
+    start, _ = _array_items(text, _skip(text, 0))[index]
+    members = _object_members(text, start)
+    item = json.dumps(reference)
+
+    if "templates" in members:
+        _, value_start, value_end = members["templates"]
+        items = _array_items(text, value_start)
+        if not items:
+            return f"{text[:value_start]}[{item}]{text[value_end:]}"
+        last_start, _ = items[-1]
+        indent = _line_indent(text, last_start)
+        separator = f",\n{indent}" if indent is not None and "\n" in text[value_start:value_end] else ", "
+        return f"{text[:last_start]}{item}{separator}{text[last_start:]}"
+
+    # Place a new templates list after "enabled" (or "name"), as the recipes do.
+    anchor = "enabled" if "enabled" in members else "name"
+    key_start, _, value_end = members[anchor]
+    indent = _line_indent(text, key_start)
+    separator = f",\n{indent}" if indent is not None else ", "
+    return f'{text[:value_end]}{separator}"templates": [{item}]{text[value_end:]}'
+
+
+def _reference_target(reference: str) -> tuple[str, str]:
+    """Splits a templates[] entry into ('template' | 'service', name), as sow reads it."""
+    qualifier, separator, name = reference.partition(":")
+    if separator:
+        return ("service", name) if qualifier == "service" and name else ("invalid", reference)
+    return ("service", reference) if reference.startswith("@") else ("template", reference)
+
+
+def _templates_dirs(containers_file: Path) -> list[Path]:
+    return [containers_file.parent / "templates", REPO_DIR / "templates"]
+
+
+def _template_names(containers_file: Path) -> list[str]:
+    return sorted({
+        d.name
+        for directory in _templates_dirs(containers_file) if directory.is_dir()
+        for d in directory.iterdir() if (d / "template.json").is_file()
+    })
+
+
+def _referenced_services(name: str, by_name: dict[str, dict[str, Any]]) -> set[str]:
+    """Returns every service that name pulls in through templates and extends."""
+    seen: set[str] = set()
+    pending = [name]
+    while pending:
+        container = by_name.get(pending.pop())
+        if container is None:
+            continue
+        refs = [container["extends"]] if container.get("extends") else []
+        for reference in container.get("templates", []):
+            kind, target = _reference_target(reference)
+            if kind == "service":
+                refs.append(target)
+        for ref in refs:
+            if ref not in seen:
+                seen.add(ref)
+                pending.append(ref)
+    return seen
+
+
+def _reference_choices(service: str, containers: list[dict[str, Any]], containers_file: Path) -> list[str]:
+    choices = _template_names(containers_file)
+    for c in containers:
+        name: str = c["name"]
+        if name != service:
+            choices.append(name if name.startswith("@") else f"service:{name}")
+    return choices
+
+
+def _check_reference(
+    service: str,
+    reference: str,
+    current: list[Any],
+    by_name: dict[str, dict[str, Any]],
+    containers_file: Path,
+) -> None:
+    """Dies unless reference can be appended to service's current templates."""
+    kind, target = _reference_target(reference)
+    if kind == "invalid":
+        _die(f"invalid reference '{reference}'; use '<template>', '@<abstract>' or 'service:<name>'")
+    if kind == "template" and target not in _template_names(containers_file):
+        hint = f"; did you mean 'service:{target}'?" if target in by_name else ""
+        _die(f"template '{target}' does not exist{hint}")
+    if kind == "service":
+        if target == service:
+            _die(f"service '{service}' cannot include itself")
+        if target not in by_name:
+            _die(f"service '{target}' does not exist in {containers_file}")
+        if service in _referenced_services(target, by_name):
+            _die(f"'{reference}' already includes '{service}'; adding it would create a cycle")
+    if (kind, target) in {_reference_target(r) for r in current if isinstance(r, str)}:
+        _die(f"service '{service}' already lists '{reference}'")
+
+
+def add_template(args: list[str]) -> None:
+    containers_file, text, containers = _load_containers()
+    by_name = {c["name"]: c for c in containers}
+    if not args:
+        print("\n".join(c["name"] for c in containers if not c.get("extends")))
+        return
+    service = args[0]
+    container = by_name.get(service)
+    if container is None:
+        _die(f"service '{service}' does not exist in {containers_file}")
+        return
+    if len(args) == 1:
+        print("\n".join(_reference_choices(service, containers, containers_file)))
+        return
+    if len(args) > 2:
+        _die("add-template takes a service name and one reference")
+    reference = args[1]
+
+    if container.get("extends"):
+        _die(
+            f"service '{service}' extends '{container['extends']}' and reuses its image, "
+            f"so templates would have no effect; use \"templates\": [\"service:{container['extends']}\", ...] "
+            "instead of extends"
+        )
+    current = container.get("templates", [])
+    if not isinstance(current, list):
+        _die(f"service '{service}' field 'templates' must be a list")
+
+    _check_reference(service, reference, current, by_name, containers_file)
+
+    index = containers.index(container)
+    # Insert before the last entry, which usually provides the command (last cmd wins).
+    container["templates"] = [*current[:-1], reference, *current[-1:]]
+    _write_containers(containers_file, _insert_template(text, index, reference), containers)
+    print(f"Added '{reference}' to '{service}' templates in {containers_file}; run sow and harvest to rebuild.")
+
+
 ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
     "run": run,
     "up": up,
@@ -242,6 +429,9 @@ ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
 def main() -> None:
     if sys.argv[1:2] == ["list"]:
         list_services()
+        return
+    if sys.argv[1:2] == ["add-template"]:
+        add_template(sys.argv[2:])
         return
     if sys.argv[1:2] == ["add"]:
         add(sys.argv[2:])

@@ -35,6 +35,9 @@ ds run <service> [args…]     # interactive services, e.g. shells and agents
 ds shell <service> [cmd…]    # a one-off command, or bash, in a new container
 ds list                      # enabled services in this project
 ds add <recipe>              # append a recipe's services to containers.json
+ds add-template <service> <ref>
+                             # insert a template, @abstract or service:<name>
+                             # before the last of a service's templates
 ```
 
 Extra `args` are appended to the service's own command. `ds shell` replaces
