@@ -15,6 +15,10 @@ ds.py — Starts a service with extra arguments appended to its command.
                                       service:<name> before the last of a service's
                                       templates, so its command is kept; with
                                       fewer arguments, list the possible values
+    ds.py extend <service> <new-service> [template] [--command "cmd args..."]
+                                      add a service that reuses <service>'s image, with
+                                      `main` set to template (default: <new-service>),
+                                      or `cmd` set to the split --command line
 
 <cmd> is the service's resolved command: the compose `command:` if set,
 otherwise the image's CMD. The entrypoint is kept as is. Without extra
@@ -25,7 +29,9 @@ service's published ports as in `up`. `add` refuses to touch containers.json
 when any of the recipe's service names is already defined there.
 `add-template` refuses references that are unknown, already listed, or would
 make a service include itself, and services that use `extends` (they reuse
-their parent's image, so templates would have no effect).
+their parent's image, so templates would have no effect). `extend` warns
+when the template is not built into the parent's image, since its program
+would be missing.
 
 Works in any directory where `docker compose` finds the project.
 """
@@ -33,6 +39,7 @@ Works in any directory where `docker compose` finds the project.
 import json
 import os
 import re
+import shlex
 import signal
 import subprocess
 import sys
@@ -420,6 +427,125 @@ def add_template(args: list[str]) -> None:
     print(f"Added '{reference}' to '{service}' templates in {containers_file}; run sow and harvest to rebuild.")
 
 
+SERVICE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.]*")
+
+
+def _template_manifest(name: str, containers_file: Path) -> dict[str, Any]:
+    for directory in _templates_dirs(containers_file):
+        manifest = directory / name / "template.json"
+        if manifest.is_file():
+            return json.loads(manifest.read_text())
+    return {}
+
+
+def _image_templates(name: str, by_name: dict[str, dict[str, Any]], containers_file: Path) -> set[str]:
+    """Returns the templates, with their requires, built into the image of service name."""
+    found: set[str] = set()
+    seen: set[str] = set()
+    pending_services = [name]
+    while pending_services:
+        container = by_name.get(pending_services.pop())
+        if container is None or container["name"] in seen:
+            continue
+        seen.add(container["name"])
+        if container.get("extends"):
+            pending_services.append(container["extends"])
+            continue
+        pending_templates: list[str] = []
+        for reference in container.get("templates", []):
+            kind, target = _reference_target(reference)
+            if kind == "service":
+                pending_services.append(target)
+            elif kind == "template":
+                pending_templates.append(target)
+        while pending_templates:
+            template = pending_templates.pop()
+            if template not in found:
+                found.add(template)
+                pending_templates.extend(_template_manifest(template, containers_file).get("requires", []))
+    return found
+
+
+def extend(args: list[str]) -> None:
+    command: list[str] | None = None
+    positional: list[str] = []
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--command" or arg.startswith("--command="):
+            if arg == "--command":
+                i += 1
+                if i == len(args):
+                    _die("--command needs a command line")
+                arg = args[i]
+            else:
+                arg = arg.removeprefix("--command=")
+            try:
+                command = shlex.split(arg)
+            except ValueError as e:
+                _die(f"cannot parse --command: {e}")
+            if not command:
+                _die("--command needs a command line")
+        else:
+            positional.append(arg)
+        i += 1
+
+    containers_file, text, containers = _load_containers()
+    by_name = {c["name"]: c for c in containers}
+    if not positional:
+        print("\n".join(name for name in by_name if not name.startswith("@")))
+        return
+    parent = positional[0]
+    if parent not in by_name:
+        _die(f"service '{parent}' does not exist in {containers_file}")
+    if parent.startswith("@"):
+        _die(f"abstract service '{parent}' cannot be extended; use ds add-template instead")
+    if len(positional) == 1:
+        print("\n".join(sorted(_image_templates(parent, by_name, containers_file))))
+        return
+    if len(positional) > 3:
+        _die("extend takes a service, a new service name and an optional template")
+    name = positional[1]
+    if name in by_name:
+        _die(f"service '{name}' already exists in {containers_file}")
+    if not SERVICE_NAME.fullmatch(name):
+        _die(f"invalid service name '{name}'; use letters, digits, '_' and '.' (not '-')")
+
+    entry: dict[str, Any] = {"name": name, "enabled": True, "extends": parent}
+    if command is not None:
+        if len(positional) == 3:
+            _die("give either a template or --command, not both")
+        entry["cmd"] = command
+        entrypoints = {
+            t: e
+            for t in sorted(_image_templates(parent, by_name, containers_file))
+            if (e := _template_manifest(t, containers_file).get("entrypoint"))
+        }
+        for template, entrypoint in entrypoints.items():
+            print(
+                f"note: template '{template}' in '{parent}'s image sets entrypoint "
+                f"{json.dumps(entrypoint)}; if it is in effect, --command is passed to it as arguments",
+                file=sys.stderr,
+            )
+    else:
+        template = positional[2] if len(positional) == 3 else name
+        if template not in _template_names(containers_file):
+            _die(f"template '{template}' does not exist; name one, or use --command")
+        if template not in _image_templates(parent, by_name, containers_file):
+            print(
+                f"warning: template '{template}' is not built into '{parent}'s image, "
+                "so its command may not be installed there",
+                file=sys.stderr,
+            )
+        entry["main"] = template
+
+    lines = [f"        {json.dumps(k)}: {json.dumps(v)}" for k, v in entry.items()]
+    entry_text = "[\n    {\n" + ",\n".join(lines) + "\n    }\n]"
+    _write_containers(containers_file, _append_entries(text, entry_text), containers + [entry])
+    how = f"cmd {json.dumps(command)}" if command is not None else f"main '{entry['main']}'"
+    print(f"Added '{name}' extending '{parent}' with {how} to {containers_file}; run sow and harvest.")
+
+
 ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
     "run": run,
     "up": up,
@@ -429,6 +555,9 @@ ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
 def main() -> None:
     if sys.argv[1:2] == ["list"]:
         list_services()
+        return
+    if sys.argv[1:2] == ["extend"]:
+        extend(sys.argv[2:])
         return
     if sys.argv[1:2] == ["add-template"]:
         add_template(sys.argv[2:])

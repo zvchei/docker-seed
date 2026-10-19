@@ -161,6 +161,84 @@ class DsAddTemplateTests(unittest.TestCase):
         self.assertEqual(self.file.read_text(), before)
 
 
+class DsExtendTests(unittest.TestCase):
+    CONTAINERS = """[
+    {"name": "@base", "templates": ["git"]},
+    {
+        "name": "app",
+        "enabled": true,
+        "templates": ["python", "@base"]
+    }
+]
+"""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.project = Path(self._tmp.name)
+        self.file = self.project / "containers.json"
+        self.file.write_text(self.CONTAINERS)
+        self._cwd = Path.cwd()
+        os.chdir(self.project)
+
+    def tearDown(self) -> None:
+        os.chdir(self._cwd)
+        self._tmp.cleanup()
+
+    def _extend(self, *args: str) -> tuple[str, str]:
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            ds.extend(list(args))
+        return out.getvalue(), err.getvalue()
+
+    def _fails(self, *args: str) -> None:
+        with self.assertRaises(SystemExit):
+            self._extend(*args)
+        self.assertEqual(self.file.read_text(), self.CONTAINERS)
+
+    def _entry(self, name: str) -> dict:
+        return next(c for c in json.loads(self.file.read_text()) if c["name"] == name)
+
+    def test_main_defaults_to_new_service_name(self) -> None:
+        _, err = self._extend("app", "python")
+        self.assertEqual(
+            self._entry("python"),
+            {"name": "python", "enabled": True, "extends": "app", "main": "python"},
+        )
+        self.assertEqual(err, "")
+
+    def test_explicit_template_from_abstract_reference(self) -> None:
+        _, err = self._extend("app", "git_shell", "git")
+        self.assertEqual(self._entry("git_shell")["main"], "git")
+        self.assertEqual(err, "")
+
+    def test_warns_when_template_is_not_in_parent_image(self) -> None:
+        _, err = self._extend("app", "web", "node")
+        self.assertEqual(self._entry("web")["main"], "node")
+        self.assertIn("not built into", err)
+
+    def test_command_is_split_into_cmd(self) -> None:
+        self._extend("app", "repl", "--command", "python -c 'print(1)'")
+        self._extend("app", "sh", "--command=bash -l")
+        self.assertEqual(self._entry("repl")["cmd"], ["python", "-c", "print(1)"])
+        self.assertNotIn("main", self._entry("repl"))
+        self.assertEqual(self._entry("sh")["cmd"], ["bash", "-l"])
+
+    def test_lists_services_and_parent_templates(self) -> None:
+        self.assertEqual(self._extend()[0].split(), ["app"])
+        self.assertIn("git", self._extend("app")[0].split())
+        self.assertIn("python", self._extend("app")[0].split())
+
+    def test_rejects_bad_input(self) -> None:
+        self._fails("missing", "x", "git")
+        self._fails("@base", "x", "git")
+        self._fails("app", "app", "git")
+        self._fails("app", "bad-name", "git")
+        self._fails("app", "x", "no-such-template")
+        self._fails("app", "x", "git", "--command", "bash")
+        self._fails("app", "x", "--command", "")
+        self._fails("app", "x", "--command")
+
+
 
 
 if __name__ == "__main__":

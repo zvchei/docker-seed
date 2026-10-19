@@ -18,7 +18,7 @@ _ds() {
     local COMP_CWORD=$cword COMP_WORDS=("${words[@]}")
 
     if ((COMP_CWORD == 1)); then
-        mapfile -t COMPREPLY < <(compgen -W "run up shell list add add-template" -- "$cur")
+        mapfile -t COMPREPLY < <(compgen -W "run up shell list add add-template extend" -- "$cur")
         return
     fi
 
@@ -44,6 +44,27 @@ _ds() {
                     COMPREPLY=("${COMPREPLY[@]#"$prefix"}")
                 fi
             fi
+            ;;
+        extend)
+            if [[ ${COMP_WORDS[COMP_CWORD - 1]} == --command ]]; then
+                mapfile -t COMPREPLY < <(compgen -c -- "$cur")
+                return
+            fi
+            # Count positional arguments before the cursor, skipping --command and its value.
+            local i positional=()
+            for ((i = 2; i < COMP_CWORD; i++)); do
+                case ${COMP_WORDS[i]} in
+                    --command) ((i++)) ;;
+                    --command=*) ;;
+                    *) positional+=("${COMP_WORDS[i]}") ;;
+                esac
+            done
+            case ${#positional[@]} in
+                0) mapfile -t COMPREPLY < <(compgen -W "$("$_DS_PY" extend 2>/dev/null)" -- "$cur") ;;
+                1) COMPREPLY=() ;;  # the new service's name
+                2) mapfile -t COMPREPLY < <(compgen -W "--command $("$_DS_PY" extend "${positional[0]}" 2>/dev/null)" -- "$cur") ;;
+                *) mapfile -t COMPREPLY < <(compgen -W "--command" -- "$cur") ;;
+            esac
             ;;
         shell)
             # Skip leading --serve flags to find the service name's position.

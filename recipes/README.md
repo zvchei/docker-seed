@@ -38,6 +38,9 @@ ds add <recipe>              # append a recipe's services to containers.json
 ds add-template <service> <ref>
                              # insert a template, @abstract or service:<name>
                              # before the last of a service's templates
+ds extend <service> <new> [template] [--command "cmd args…"]
+                             # add <new> reusing <service>'s image, running
+                             # template's command (default: <new>) or cmd
 ```
 
 Extra `args` are appended to the service's own command. `ds shell` replaces
