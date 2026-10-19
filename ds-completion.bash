@@ -9,22 +9,33 @@ _ds_services() {
 
 _ds() {
     local cur=${COMP_WORDS[COMP_CWORD]}
-    case $COMP_CWORD in
-        1)
-            mapfile -t COMPREPLY < <(compgen -W "run up shell list" -- "$cur")
+    if ((COMP_CWORD == 1)); then
+        mapfile -t COMPREPLY < <(compgen -W "run up shell list" -- "$cur")
+        return
+    fi
+
+    case ${COMP_WORDS[1]} in
+        run|up)
+            if ((COMP_CWORD == 2)); then
+                mapfile -t COMPREPLY < <(compgen -W "$(_ds_services)" -- "$cur")
+            fi
             ;;
-        2)
-            case ${COMP_WORDS[1]} in
-                run|up|shell)
-                    mapfile -t COMPREPLY < <(compgen -W "$(_ds_services)" -- "$cur")
-                    ;;
-            esac
-            ;;
-        3)
-            # The command to run in place of the service's own.
-            case ${COMP_WORDS[1]} in
-                shell) mapfile -t COMPREPLY < <(compgen -c -- "$cur") ;;
-            esac
+        shell)
+            # Skip leading --serve flags to find the service name's position.
+            local i flags=0
+            for ((i = 2; i < COMP_CWORD; i++)); do
+                case ${COMP_WORDS[i]} in
+                    --serve) ((flags++)) ;;
+                    *) break ;;
+                esac
+            done
+            local pos=$((COMP_CWORD - 2 - flags))
+            if ((pos == 0)); then
+                mapfile -t COMPREPLY < <(compgen -W "--serve $(_ds_services)" -- "$cur")
+            elif ((pos == 1)); then
+                # The command to run in place of the service's own.
+                mapfile -t COMPREPLY < <(compgen -c -- "$cur")
+            fi
             ;;
     esac
 }

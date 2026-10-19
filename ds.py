@@ -4,7 +4,7 @@ ds.py — Starts a service with extra arguments appended to its command.
 
     ds.py run <service> [args...]     docker compose run --rm <service> <cmd> <args...>
     ds.py up  <service> [args...]     docker compose up <service>, with <cmd> <args...>
-    ds.py shell <service> [command [args...]]
+    ds.py shell [--serve] <service> [command [args...]]
                                       docker compose run --rm <service> <command> <args...>,
                                       or a bash shell when no command is given
     ds.py list                        enabled services from the nearest containers.json
@@ -13,6 +13,8 @@ ds.py — Starts a service with extra arguments appended to its command.
 otherwise the image's CMD. The entrypoint is kept as is. Without extra
 arguments the service starts with its normal command. `shell` ignores <cmd>
 and runs the given command (or bash) in a new container of the service.
+`--serve` passes `--service-ports` to `docker compose run`, binding the
+service's published ports as in `up`.
 
 Works in any directory where `docker compose` finds the project.
 """
@@ -138,8 +140,16 @@ def up(service: str, args: list[str]) -> None:
     sys.exit(result.returncode)
 
 
-def shell(service: str, args: list[str]) -> None:
-    os.execvp("docker", ["docker", "compose", "run", "--rm", service, *(args or [SHELL])])
+def shell(args: list[str]) -> None:
+    serve = False
+    while args and args[0] == "--serve":
+        serve = True
+        args = args[1:]
+    if not args:
+        _die("shell requires a service name")
+    service, *command = args
+    extra = ["--service-ports"] if serve else []
+    os.execvp("docker", ["docker", "compose", "run", "--rm", *extra, service, *(command or [SHELL])])
 
 
 def list_services() -> None:
@@ -157,13 +167,15 @@ def list_services() -> None:
 ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
     "run": run,
     "up": up,
-    "shell": shell,
 }
 
 
 def main() -> None:
     if sys.argv[1:2] == ["list"]:
         list_services()
+        return
+    if sys.argv[1:2] == ["shell"]:
+        shell(sys.argv[2:])
         return
     if len(sys.argv) < 3 or sys.argv[1] not in ACTIONS:
         print(__doc__.strip(), file=sys.stderr)
