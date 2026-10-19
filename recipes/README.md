@@ -18,7 +18,10 @@ harvest   # answer Y to build the images
 ```
 
 `till` writes a default `containers.json`; the `cp` replaces it with the
-recipe. Do the recipe's **Before you start** steps before `harvest` builds
+recipe. To combine recipes, run `ds add <recipe>` inside the project instead
+of the `cp`: it appends the recipe's services to the existing
+`containers.json` and stops without changes if any of their names is already
+defined there (`ds add` alone lists the recipes). Do the recipe's **Before you start** steps before `harvest` builds
 the images.
 
 ## Running services
@@ -31,6 +34,7 @@ ds up <service> [args…]      # servers: start in the foreground
 ds run <service> [args…]     # interactive services, e.g. shells and agents
 ds shell <service> [cmd…]    # a one-off command, or bash, in a new container
 ds list                      # enabled services in this project
+ds add <recipe>              # append a recipe's services to containers.json
 ```
 
 Extra `args` are appended to the service's own command. `ds shell` replaces

@@ -10,7 +10,7 @@ _ds_services() {
 _ds() {
     local cur=${COMP_WORDS[COMP_CWORD]}
     if ((COMP_CWORD == 1)); then
-        mapfile -t COMPREPLY < <(compgen -W "run up shell list" -- "$cur")
+        mapfile -t COMPREPLY < <(compgen -W "run up shell list add" -- "$cur")
         return
     fi
 
@@ -18,6 +18,11 @@ _ds() {
         run|up)
             if ((COMP_CWORD == 2)); then
                 mapfile -t COMPREPLY < <(compgen -W "$(_ds_services)" -- "$cur")
+            fi
+            ;;
+        add)
+            if ((COMP_CWORD == 2)); then
+                mapfile -t COMPREPLY < <(compgen -W "$("$_DS_PY" add 2>/dev/null)" -- "$cur")
             fi
             ;;
         shell)
