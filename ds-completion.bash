@@ -18,7 +18,7 @@ _ds() {
     local COMP_CWORD=$cword COMP_WORDS=("${words[@]}")
 
     if ((COMP_CWORD == 1)); then
-        mapfile -t COMPREPLY < <(compgen -W "run up shell list add add-template extend" -- "$cur")
+        mapfile -t COMPREPLY < <(compgen -W "run up shell list add add-template new extend" -- "$cur")
         return
     fi
 
@@ -39,6 +39,16 @@ _ds() {
             elif ((COMP_CWORD == 3)); then
                 mapfile -t COMPREPLY < <(compgen -W "$("$_DS_PY" add-template "${COMP_WORDS[2]}" 2>/dev/null)" -- "$cur")
                 # Bash replaces only the part after the last ':'; drop what it keeps.
+                if [[ $COMP_WORDBREAKS == *:* && $cur == *:* ]]; then
+                    local prefix=${cur%"${cur##*:}"}
+                    COMPREPLY=("${COMPREPLY[@]#"$prefix"}")
+                fi
+            fi
+            ;;
+        new)
+            # The new service's name comes first; references follow.
+            if ((COMP_CWORD >= 3)); then
+                mapfile -t COMPREPLY < <(compgen -W "$("$_DS_PY" new 2>/dev/null)" -- "$cur")
                 if [[ $COMP_WORDBREAKS == *:* && $cur == *:* ]]; then
                     local prefix=${cur%"${cur##*:}"}
                     COMPREPLY=("${COMPREPLY[@]#"$prefix"}")

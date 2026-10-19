@@ -15,6 +15,10 @@ ds.py — Starts a service with extra arguments appended to its command.
                                       service:<name> before the last of a service's
                                       templates, so its command is kept; with
                                       fewer arguments, list the possible values
+    ds.py new [service [reference...]]
+                                      add an enabled service (abstract with a leading @)
+                                      whose templates are the given references; with
+                                      no arguments, list the possible references
     ds.py extend <service> <new-service> [template] [--command "cmd args..."]
                                       add a service that reuses <service>'s image, with
                                       `main` set to template (default: <new-service>),
@@ -29,7 +33,8 @@ service's published ports as in `up`. `add` refuses to touch containers.json
 when any of the recipe's service names is already defined there.
 `add-template` refuses references that are unknown, already listed, or would
 make a service include itself, and services that use `extends` (they reuse
-their parent's image, so templates would have no effect). `extend` warns
+their parent's image, so templates would have no effect). `new` checks each
+reference the same way and refuses names already defined. `extend` warns
 when the template is not built into the parent's image, since its program
 would be missing.
 
@@ -546,6 +551,35 @@ def extend(args: list[str]) -> None:
     print(f"Added '{name}' extending '{parent}' with {how} to {containers_file}; run sow and harvest.")
 
 
+def new(args: list[str]) -> None:
+    containers_file, text, containers = _load_containers()
+    by_name = {c["name"]: c for c in containers}
+    if not args:
+        print("\n".join(_reference_choices("", containers, containers_file)))
+        return
+    name, *references = args
+    if name in by_name:
+        _die(f"service '{name}' already exists in {containers_file}")
+    if not SERVICE_NAME.fullmatch(name.removeprefix("@")):
+        _die(f"invalid service name '{name}'; use letters, digits, '_' and '.' (not '-')")
+
+    templates: list[str] = []
+    for reference in references:
+        _check_reference(name, reference, templates, by_name, containers_file)
+        templates.append(reference)
+
+    entry: dict[str, Any] = {"name": name}
+    if not name.startswith("@"):
+        entry["enabled"] = True
+    entry["templates"] = templates
+
+    lines = [f"        {json.dumps(k)}: {json.dumps(v)}" for k, v in entry.items()]
+    entry_text = "[\n    {\n" + ",\n".join(lines) + "\n    }\n]"
+    _write_containers(containers_file, _append_entries(text, entry_text), containers + [entry])
+    what = f"with templates {', '.join(templates)}" if templates else "with no templates"
+    print(f"Added '{name}' {what} to {containers_file}; run sow and harvest.")
+
+
 ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
     "run": run,
     "up": up,
@@ -555,6 +589,9 @@ ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
 def main() -> None:
     if sys.argv[1:2] == ["list"]:
         list_services()
+        return
+    if sys.argv[1:2] == ["new"]:
+        new(sys.argv[2:])
         return
     if sys.argv[1:2] == ["extend"]:
         extend(sys.argv[2:])

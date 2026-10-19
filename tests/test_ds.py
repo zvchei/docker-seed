@@ -239,6 +239,71 @@ class DsExtendTests(unittest.TestCase):
         self._fails("app", "x", "--command")
 
 
+class DsNewTests(unittest.TestCase):
+    CONTAINERS = """[
+    {"name": "@base", "templates": ["git"]},
+    {
+        "name": "app",
+        "enabled": true,
+        "templates": ["python", "@base"]
+    }
+]
+"""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.project = Path(self._tmp.name)
+        self.file = self.project / "containers.json"
+        self.file.write_text(self.CONTAINERS)
+        self._cwd = Path.cwd()
+        os.chdir(self.project)
+
+    def tearDown(self) -> None:
+        os.chdir(self._cwd)
+        self._tmp.cleanup()
+
+    def _new(self, *args: str) -> str:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            ds.new(list(args))
+        return out.getvalue()
+
+    def _fails(self, *args: str) -> None:
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self._new(*args)
+        self.assertEqual(self.file.read_text(), self.CONTAINERS)
+
+    def _entry(self, name: str) -> dict:
+        return next(c for c in json.loads(self.file.read_text()) if c["name"] == name)
+
+    def test_empty_service(self) -> None:
+        self._new("web")
+        self.assertEqual(self._entry("web"), {"name": "web", "enabled": True, "templates": []})
+        self.assertTrue(self.file.read_text().startswith(self.CONTAINERS.rstrip()[:-1].rstrip()))
+
+    def test_references_in_order(self) -> None:
+        self._new("web", "node", "@base", "service:app")
+        self.assertEqual(self._entry("web")["templates"], ["node", "@base", "service:app"])
+
+    def test_abstract_service_has_no_enabled(self) -> None:
+        self._new("@tools", "git")
+        self.assertEqual(self._entry("@tools"), {"name": "@tools", "templates": ["git"]})
+
+    def test_lists_references(self) -> None:
+        choices = self._new().split()
+        self.assertIn("git", choices)
+        self.assertIn("@base", choices)
+        self.assertIn("service:app", choices)
+
+    def test_rejects_bad_input(self) -> None:
+        self._fails("app")
+        self._fails("@base")
+        self._fails("bad-name")
+        self._fails("web", "no-such-template")
+        self._fails("web", "service:missing")
+        self._fails("web", "service:web")
+        self._fails("web", "git", "git")
+        self._fails("web", "@base", "service:@base")
 
 
 if __name__ == "__main__":
