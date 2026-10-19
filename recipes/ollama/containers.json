@@ -4,9 +4,7 @@
         "enabled": true,
         "templates": ["ollama"],
         "profile": "gpu",
-        "restart": "unless-stopped",
-        "ports": ["127.0.0.1:11434:11434"],
-        "networks": [{"name": "ollama_network", "external": true}]
+        "restart": "unless-stopped"
     },
     {
         "name": "ollama_chat",
