@@ -9,7 +9,7 @@ Steps:
   2. Read enabled services from ./containers.json
   3. Regenerate the root ./docker-compose.yaml (include stanza)
   4. If .env is missing, seed it from .env.template and run configure.py
-  5. Optionally run `docker-compose build`
+  5. Run `docker-compose build`
 """
 
 import json
@@ -101,21 +101,17 @@ def ensure_env() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Step 4 — optional docker-compose build
+# Step 4 — docker-compose build
 # ---------------------------------------------------------------------------
 
 
-def prompt_docker_build() -> None:
-    answer = input("\nDo you want to proceed with `docker-compose build`? [Y/n]: ").strip()
+def docker_build() -> None:
     print()
-    if answer == "" or answer.lower() in ("y", "yes"):
-        dc = shutil.which("docker-compose")
-        if dc is None:
-            print(f"{YELLOW}⚠{RESET} `docker-compose` is not installed or not in PATH.")
-            sys.exit(1)
-        subprocess.run([dc, "build"], check=True)
-    else:
-        print("Use `docker-compose build` to manually create the service images.")
+    dc = shutil.which("docker-compose")
+    if dc is None:
+        print(f"{YELLOW}⚠{RESET} `docker-compose` is not installed or not in PATH.")
+        sys.exit(1)
+    subprocess.run([dc, "build"], check=True)
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +130,7 @@ def main() -> None:
 
     ensure_env()
 
-    prompt_docker_build()
+    docker_build()
 
 
 if __name__ == "__main__":

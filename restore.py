@@ -589,7 +589,7 @@ def main(argv: list[str] | None = None) -> None:
     shutil.rmtree(extract_dir, ignore_errors=True)
     print(f"{GREEN}✓{RESET} Restore complete: project '{project}' in {target}")
     print(f"{GREY}◦{RESET} Volumes restored: {len(created_volumes)}")
-    print(f"{GREY}◦{RESET} Next: cd {target} && docker-compose build (if not already built by harvest)")
+    print(f"{GREY}◦{RESET} Images were built by harvest; cd {target} to use the project")
 
 
 if __name__ == "__main__":

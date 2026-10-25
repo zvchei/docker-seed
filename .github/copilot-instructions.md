@@ -16,7 +16,7 @@ Scripts operate on the **current working directory** (`Path.cwd()`), not the scr
 ./tend.py          # (optional) downloads ./assets.json → ./assets/
 ./harvest.py       # regenerates ./docker-compose.yaml; if .env is missing,
                    # seeds it from .env.template and runs configure.py;
-                   # optionally runs docker-compose build
+                   # then runs docker-compose build
 ./configure.py     # interactively review/update .env (re-run anytime)
 ```
 

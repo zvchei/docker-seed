@@ -83,7 +83,7 @@ Add or edit entries in `containers.json`, optionally add project-specific templa
 1. Edit **`containers.json`** in the project directory - list container names, `templates` to merge, and set `"enabled": true` for services you want generated.
 2. Run **`sow`** - writes `services/<name>/Dockerfile` and `docker-compose.yaml` for each enabled entry; writes `assets.json` when needed.
 3. **(Optional)** Run **`tend`** - download asset files listed in `assets.json` into `./assets/`.
-4. Run **`harvest`** - regenerates the root `docker-compose.yaml`; seeds and configures `.env` only if it was missing; optionally builds images.
+4. Run **`harvest`** - regenerates the root `docker-compose.yaml`; seeds and configures `.env` only if it was missing; builds images.
 5. **(Optional)** Run **`configure`** anytime to review or update `.env` values.
 
 ### Template layout
@@ -239,7 +239,7 @@ This copies the image, volumes, ports, and other settings from `my-container`. Y
 
 Use **`tend`** to download asset files listed in `./assets.json` into `./assets/`. These files can then be copied into containers during build.
 
-Use **`harvest`** to orchestrate setup, compose generation, optional first-time `.env` seeding/configure, and optional image builds. Use **`configure`** to review or update `.env` anytime.
+Use **`harvest`** to orchestrate setup, compose generation, optional first-time `.env` seeding/configure, and image builds. Use **`configure`** to review or update `.env` anytime.
 
 ### Copy directories or files into or out of volumes (`transfer`)
 

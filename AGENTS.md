@@ -18,7 +18,7 @@ sow        # reads ./containers.json; generates ./services/<name>/…
 tend       # (optional) downloads ./assets.json → ./assets/
 harvest    # regenerates ./docker-compose.yaml; if .env is missing,
            # seeds it from .env.template and runs configure;
-           # optionally runs docker-compose build
+           # then runs docker-compose build
 configure  # interactively review/update .env (re-run anytime)
 transfer   # copy a directory or file into or out of a named volume
            # (service need not be running; direction from args)

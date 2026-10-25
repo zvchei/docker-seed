@@ -105,7 +105,7 @@ def main() -> None:
     if result.returncode == 125:
         print(
             f"{YELLOW}⚠{RESET} Hint: the base/default images may not exist yet — run "
-            "harvest (and confirm the docker-compose build step) first.",
+            "harvest first.",
             file=sys.stderr,
         )
 
