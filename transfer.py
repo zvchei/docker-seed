@@ -77,8 +77,21 @@ otherwise the source's contents become the destination path. --force skips the
 overwrite prompt.
 """
 
+
 HELPER_SCRIPT = """\
 set -e
+# Creates $1 and any missing parents, each owned by the container user.
+mkdir_owned() {
+  [ -d "$1" ] && return 0
+  mkdir_owned "$(dirname "$1")"
+  mkdir "$1"
+  chown "$XFER_UID:$XFER_GID" "$1"
+}
+
+if [ "$XFER_NEW_VOLUME" = 1 ]; then
+  chown "$XFER_UID:$XFER_GID" /xfer
+fi
+
 if [ "$XFER_REL" = "." ]; then
   DEST=/xfer
 else
@@ -90,7 +103,7 @@ if [ "$XFER_KIND" = file ]; then
     if [ "$XFER_OVERWRITE" = 1 ]; then
       rm -f "$DEST"
     fi
-    mkdir -p "$(dirname "$DEST")"
+    mkdir_owned "$(dirname "$DEST")"
     cp "/host/$XFER_NAME" "$DEST"
     chown "$XFER_UID:$XFER_GID" "$DEST"
   else
@@ -114,7 +127,7 @@ if [ "$XFER_MODE" = import ]; then
       rm -rf "$DEST"
     fi
   fi
-  mkdir -p "$DEST"
+  mkdir_owned "$DEST"
   tar -C /host -cf - . | tar -C "$DEST" -xf -
   chown -R "$XFER_UID:$XFER_GID" "$DEST"
 else
@@ -473,6 +486,7 @@ def run_transfer(
     overwrite: bool,
     uid: str,
     gid: str,
+    new_volume: bool = False,
 ) -> None:
     env_flags = [
         "-e",
@@ -489,6 +503,8 @@ def run_transfer(
         f"XFER_UID={uid}",
         "-e",
         f"XFER_GID={gid}",
+        "-e",
+        f"XFER_NEW_VOLUME={'1' if new_volume else '0'}",
     ]
     result = run_docker(
         [
@@ -653,6 +669,7 @@ def main(argv: list[str] | None = None) -> None:
                 overwrite=overwrite,
                 uid=uid,
                 gid=uid,
+                new_volume=created_volume,
             )
             print(f"{GREEN}✓{RESET} Imported {host_path} → {docker_volume}:{dest_rel}")
             return
@@ -706,6 +723,7 @@ def main(argv: list[str] | None = None) -> None:
             overwrite=overwrite,
             uid=uid,
             gid=uid,
+            new_volume=created_volume,
         )
         print(f"{GREEN}✓{RESET} Imported {host_path} → {docker_volume}:{rel}")
         return

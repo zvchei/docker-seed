@@ -268,7 +268,7 @@ For files, destinations follow cp/rsync rules: if the destination exists as a di
 
 For directories, a destination ending with `/` receives the source directory under its own name (`dest/<basename>/`), creating `dest/` if needed; without the slash, the source's contents become the destination path. Only that nested directory is replaced on overwrite — other entries in `dest/` are left alone.
 
-If the target already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing.
+If the target already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing. On import, the transferred files and any directories created for them (including the root of a volume the import creates) are owned by `CONTAINER_USER_ID`.
 
 ### Moving a project (`move`)
 
