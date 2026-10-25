@@ -1,7 +1,9 @@
 import contextlib
+import importlib
 import io
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -308,3 +310,34 @@ class DsNewTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DsScriptTests(unittest.TestCase):
+    def test_every_script_has_main(self) -> None:
+        for name in ds.SCRIPTS:
+            self.assertTrue((ds.REPO_DIR / f"{name}.py").is_file(), name)
+            self.assertTrue(callable(importlib.import_module(name).main), name)
+
+    def test_dispatches_with_ds_prefixed_argv(self) -> None:
+        argv = sys.argv
+        err = io.StringIO()
+        try:
+            sys.argv = ["ds", "configure", "a", "b"]
+            with contextlib.redirect_stderr(err), self.assertRaises(SystemExit):
+                ds.main()
+        finally:
+            sys.argv = argv
+        self.assertIn("Usage: ds configure [.env]", err.getvalue())
+
+    def test_help_lists_every_command(self) -> None:
+        argv = sys.argv
+        out = io.StringIO()
+        try:
+            sys.argv = ["ds", "--help"]
+            with contextlib.redirect_stdout(out):
+                ds.main()
+        finally:
+            sys.argv = argv
+        commands = {*ds.SCRIPTS, *ds.ACTIONS, "shell", "list", "add", "add-template", "new", "extend"}
+        for command in commands:
+            self.assertIn(f"    ds {command} ", out.getvalue().replace("ds up  ", "ds up "), command)

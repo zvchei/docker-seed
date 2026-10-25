@@ -18,7 +18,7 @@ _ds() {
     local COMP_CWORD=$cword COMP_WORDS=("${words[@]}")
 
     if ((COMP_CWORD == 1)); then
-        mapfile -t COMPREPLY < <(compgen -W "run up shell list add add-template new extend" -- "$cur")
+        mapfile -t COMPREPLY < <(compgen -W "help run up shell list add add-template new extend till sow tend harvest configure cleanup transfer move backup restore pot" -- "$cur")
         return
     fi
 
@@ -75,6 +75,16 @@ _ds() {
                 2) mapfile -t COMPREPLY < <(compgen -W "--command $("$_DS_PY" extend "${positional[0]}" 2>/dev/null)" -- "$cur") ;;
                 *) mapfile -t COMPREPLY < <(compgen -W "--command" -- "$cur") ;;
             esac
+            ;;
+        till)
+            if ((COMP_CWORD == 2)); then
+                mapfile -t COMPREPLY < <(compgen -d -- "$cur")
+            fi
+            ;;
+        pot)
+            if ((COMP_CWORD == 2)); then
+                mapfile -t COMPREPLY < <(compgen -c -- "$cur")
+            fi
             ;;
         shell)
             # Skip leading --serve flags to find the service name's position.

@@ -1,28 +1,54 @@
 #!/usr/bin/env python3
 """
-ds.py — Starts a service with extra arguments appended to its command.
+ds — DockerSeed's command line: run services, edit containers.json, and run
+the DockerSeed scripts.
 
-    ds.py run <service> [args...]     docker compose run --rm <service> <cmd> <args...>
-    ds.py up  <service> [args...]     docker compose up <service>, with <cmd> <args...>
-    ds.py shell [--serve] <service> [command [args...]]
+Running services:
+    ds run <service> [args...]        docker compose run --rm <service> <cmd> <args...>
+    ds up  <service> [args...]        docker compose up <service>, with <cmd> <args...>
+    ds shell [--serve] <service> [command [args...]]
                                       docker compose run --rm <service> <command> <args...>,
                                       or a bash shell when no command is given
-    ds.py list                        enabled services from the nearest containers.json
-    ds.py add [recipe]                append a recipe's services to the nearest
+    ds list                           enabled services from the nearest containers.json
+
+Editing containers.json:
+    ds add [recipe]                   append a recipe's services to the nearest
                                       containers.json, or list recipes when none is given
-    ds.py add-template [service [reference]]
+    ds add-template [service [reference]]
                                       insert a template, @abstract service or
                                       service:<name> before the last of a service's
                                       templates, so its command is kept; with
                                       fewer arguments, list the possible values
-    ds.py new [service [reference...]]
+    ds new [service [reference...]]
                                       add an enabled service (abstract with a leading @)
                                       whose templates are the given references; with
                                       no arguments, list the possible references
-    ds.py extend <service> <new-service> [template] [--command "cmd args..."]
+    ds extend <service> <new-service> [template] [--command "cmd args..."]
                                       add a service that reuses <service>'s image, with
                                       `main` set to template (default: <new-service>),
                                       or `cmd` set to the split --command line
+
+Scripts (each script's docstring in the repo has the details):
+    ds till [directory]               scaffold containers.json, .env and related files
+                                      in cwd (or directory), then run configure
+    ds sow                            generate services/<name>/ from ./containers.json
+    ds tend                           download the assets in ./assets.json to ./assets/
+    ds harvest                        regenerate ./docker-compose.yaml, seeding .env if
+                                      missing; optionally run docker-compose build
+    ds configure [.env]               interactively review and update .env
+    ds cleanup                        remove services/, images and volumes no longer
+                                      declared in containers.json, after review
+    ds transfer [--force] <from> <to> copy a directory or file into or out of a
+                                      named volume (one side is service:volume[:path])
+    ds move <project> <target> [--force]
+                                      move a project directory, migrating its volumes,
+                                      image tags and COMPOSE_PROJECT_NAME
+    ds backup [output.tar] [--force] [--include-secrets] [--no-secrets]
+                                      archive the project and its volumes into one .tar
+    ds restore <archive> [directory] [--name NEW_NAME] [--force]
+                                      recreate a project from a backup archive
+    ds pot <command> [args...]        run a one-off command in the 'default' service
+                                      with cwd mounted read-only
 
 <cmd> is the service's resolved command: the compose `command:` if set,
 otherwise the image's CMD. The entrypoint is kept as is. Without extra
@@ -41,6 +67,7 @@ would be missing.
 Works in any directory where `docker compose` finds the project.
 """
 
+import importlib
 import json
 import os
 import re
@@ -70,6 +97,21 @@ SHELL: str = "bash"
 
 REPO_DIR: Path = Path(__file__).resolve().parent
 RECIPES_DIR: Path = REPO_DIR / "recipes"
+
+# The repo's command-line scripts, each a module with a main() that reads sys.argv.
+SCRIPTS: tuple[str, ...] = (
+    "till",
+    "sow",
+    "tend",
+    "harvest",
+    "configure",
+    "cleanup",
+    "transfer",
+    "move",
+    "backup",
+    "restore",
+    "pot",
+)
 
 RED = "\033[31m"
 RESET = "\033[0m"
@@ -580,6 +622,14 @@ def new(args: list[str]) -> None:
     print(f"Added '{name}' {what} to {containers_file}; run sow and harvest.")
 
 
+def run_script(name: str, args: list[str]) -> None:
+    """Runs the repo script name as if invoked as `ds <name> args...`."""
+    if str(REPO_DIR) not in sys.path:
+        sys.path.insert(0, str(REPO_DIR))
+    sys.argv = [f"ds {name}", *args]
+    importlib.import_module(name).main()
+
+
 ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
     "run": run,
     "up": up,
@@ -587,6 +637,12 @@ ACTIONS: dict[str, Callable[[str, list[str]], None]] = {
 
 
 def main() -> None:
+    if sys.argv[1:2] in (["-h"], ["--help"], ["help"]):
+        print(__doc__.strip())
+        return
+    if len(sys.argv) > 1 and sys.argv[1] in SCRIPTS:
+        run_script(sys.argv[1], sys.argv[2:])
+        return
     if sys.argv[1:2] == ["list"]:
         list_services()
         return

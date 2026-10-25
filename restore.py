@@ -69,7 +69,7 @@ RESET = "\033[0m"
 
 USAGE = """\
 Usage:
-    ./restore.py <archive.tar[.gz]> [directory] [--name NEW_NAME] [--force]
+    {prog} <archive.tar[.gz]> [directory] [--name NEW_NAME] [--force]
 
 Restore a backup.py archive into <directory> (default: current directory).
 Both plain .tar and gzip-compressed .tar.gz archives are accepted.
@@ -80,6 +80,12 @@ Both plain .tar and gzip-compressed .tar.gz archives are accepted.
                  containers.json/.env, and reuse an existing Docker
                  volume/image prefix if one already matches the target name.
 """
+
+
+def usage() -> str:
+    """Returns USAGE naming the command this script was run as."""
+    return USAGE.format(prog=sys.argv[0])
+
 
 VALID_PROJECT_RE_SOURCE = r"^[a-z0-9][a-z0-9_.-]*$"
 
@@ -202,22 +208,22 @@ def parse_args(argv: list[str] | None = None) -> tuple[Path, str | None, str | N
         elif arg == "--name":
             i += 1
             if i >= len(argv):
-                print(USAGE, file=sys.stderr)
+                print(usage(), file=sys.stderr)
                 sys.exit(1)
             new_name = argv[i]
         elif arg in {"-h", "--help"}:
-            print(USAGE)
+            print(usage())
             sys.exit(0)
         elif arg.startswith("-"):
             print(f"{RED}✗{RESET} Unknown option: {arg}", file=sys.stderr)
-            print(USAGE, file=sys.stderr)
+            print(usage(), file=sys.stderr)
             sys.exit(1)
         else:
             positional.append(arg)
         i += 1
 
     if not (1 <= len(positional) <= 2):
-        print(USAGE, file=sys.stderr)
+        print(usage(), file=sys.stderr)
         sys.exit(1)
 
     archive = Path(positional[0]).expanduser().resolve()

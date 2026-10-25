@@ -38,8 +38,8 @@ RESET = "\033[0m"
 
 USAGE = """\
 Usage:
-    ./transfer.py [--force] <host-path> <service>:<volume>[:<path>]
-    ./transfer.py [--force] <service>:<volume>[:<path>] <host-path>
+    {prog} [--force] <host-path> <service>:<volume>[:<path>]
+    {prog} [--force] <service>:<volume>[:<path>] <host-path>
 
 Import (host → volume) or export (volume → host); direction is inferred from
 which argument is a volume spec. The spec's first field must be a generated
@@ -49,25 +49,25 @@ volume root, a relative path, or an absolute container path under the mount.
 Examples (import; reverse the args to export):
 
   # Directory as directory — contents of ./dir become volume path dir/
-  ./transfer.py ./dir service:volume:dir
+  {prog} ./dir service:volume:dir
 
   # Directory into directory — trailing / places ./dir inside as dest/dir/
-  ./transfer.py ./dir service:volume:dest/
+  {prog} ./dir service:volume:dest/
 
   # File as file — copy/rename to an exact path
-  ./transfer.py ./file.ext service:volume:file.ext
-  ./transfer.py ./file.ext service:volume:path/to/other.ext
+  {prog} ./file.ext service:volume:file.ext
+  {prog} ./file.ext service:volume:path/to/other.ext
 
   # File into directory — keep basename; trailing / forces dir even if missing
-  ./transfer.py ./file.ext service:volume:dest/
-  ./transfer.py ./file.ext service:volume          # into volume root
+  {prog} ./file.ext service:volume:dest/
+  {prog} ./file.ext service:volume          # into volume root
 
   # Export file as file (including rename) / into directory
-  ./transfer.py service:volume:file.ext ./path/to/other.ext
-  ./transfer.py service:volume:file.ext ./dest/
+  {prog} service:volume:file.ext ./path/to/other.ext
+  {prog} service:volume:file.ext ./dest/
 
   # Export directory into directory — creates ./dest/dir/
-  ./transfer.py service:volume:dir ./dest/
+  {prog} service:volume:dir ./dest/
 
 For files: if the destination exists as a directory (or is the volume root), or
 ends with /, the file is placed inside it under the same basename; otherwise the
@@ -76,6 +76,11 @@ a destination ending with / receives the source directory under its own name;
 otherwise the source's contents become the destination path. --force skips the
 overwrite prompt.
 """
+
+
+def usage() -> str:
+    """Returns USAGE naming the command this script was run as."""
+    return USAGE.format(prog=sys.argv[0])
 
 
 HELPER_SCRIPT = """\
@@ -529,9 +534,9 @@ def run_transfer(
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        prog="transfer",
+        prog=sys.argv[0],
         description="Copy a directory or file between the host and a DockerSeed named volume.",
-        epilog=USAGE,
+        epilog=usage(),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
@@ -555,7 +560,7 @@ def main(argv: list[str] | None = None) -> None:
                 f"{GREY}◦{RESET} No generated services found — run sow first.",
                 file=sys.stderr,
             )
-        print(USAGE, file=sys.stderr)
+        print(usage(), file=sys.stderr)
         sys.exit(1)
 
     try:

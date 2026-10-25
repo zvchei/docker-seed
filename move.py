@@ -44,7 +44,7 @@ RESET = "\033[0m"
 
 USAGE = """\
 Usage:
-    ./move.py <project> <target> [--force]
+    {prog} <project> <target> [--force]
 
 Move a DockerSeed project directory. A target ending in `/` is an existing
 destination directory; otherwise the target is the exact destination path.
@@ -56,6 +56,11 @@ and update .env COMPOSE_PROJECT_NAME.
 new name already belongs to another project. It never overwrites the target
 directory.
 """
+
+
+def usage() -> str:
+    """Returns USAGE naming the command this script was run as."""
+    return USAGE.format(prog=sys.argv[0])
 
 
 class RollbackLedger:
@@ -295,12 +300,12 @@ def parse_args(argv: list[str] | None = None) -> tuple[str, str, bool]:
             force = True
             continue
         if arg in {"-h", "--help"}:
-            print(USAGE)
+            print(usage())
             sys.exit(0)
         positional.append(arg)
 
     if len(positional) != 2:
-        print(USAGE, file=sys.stderr)
+        print(usage(), file=sys.stderr)
         sys.exit(1)
 
     return positional[0], positional[1], force

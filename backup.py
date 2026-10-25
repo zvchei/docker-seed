@@ -64,7 +64,7 @@ RESET = "\033[0m"
 
 USAGE = f"""\
 {BLUE}Usage:{RESET}
-    ./backup.py [output.tar] [--force] [--include-secrets] [--no-secrets]
+    {{prog}} [output.tar] [--force] [--include-secrets] [--no-secrets]
 
 Create one restorable DockerSeed backup archive from the current working
 directory and its Docker named volumes.
@@ -79,6 +79,12 @@ Options:
     {GREEN}--include-secrets{RESET}  include real files under ./secrets/ without prompting
     {GREEN}--no-secrets{RESET}       skip ./secrets/ without prompting
 """
+
+
+def usage() -> str:
+    """Returns USAGE naming the command this script was run as."""
+    return USAGE.format(prog=sys.argv[0])
+
 
 KNOWN_SECRET_PLACEHOLDERS: frozenset[str] = frozenset({"README", "ssh/README"})
 
@@ -336,7 +342,7 @@ def main(argv: list[str] | None = None) -> None:
         output_arg, force, secrets_override = parse_args(argv)
     except BackupError as exc:
         print(f"{RED}✗{RESET} {exc}", file=sys.stderr)
-        print(USAGE, file=sys.stderr)
+        print(usage(), file=sys.stderr)
         sys.exit(1)
 
     env = load_env(ENV_FILE)

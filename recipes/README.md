@@ -43,6 +43,9 @@ ds new <service> [ref…]      # add a service built from the given templates,
 ds extend <service> <new> [template] [--command "cmd args…"]
                              # add <new> reusing <service>'s image, running
                              # template's command (default: <new>) or cmd
+ds <script> [args…]          # any DockerSeed script: till, sow, tend, harvest,
+                             # configure, cleanup, transfer, move, backup,
+                             # restore or pot
 ```
 
 Extra `args` are appended to the service's own command. `ds shell` replaces
