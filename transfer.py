@@ -51,7 +51,7 @@ Examples (import; reverse the args to export):
   # Directory as directory — contents of ./dir become volume path dir/
   ./transfer.py ./dir service:volume:dir
 
-  # Directory into directory — contents of ./dir go into dest/ (trailing / optional)
+  # Directory into directory — trailing / places ./dir inside as dest/dir/
   ./transfer.py ./dir service:volume:dest/
 
   # File as file — copy/rename to an exact path
@@ -66,10 +66,15 @@ Examples (import; reverse the args to export):
   ./transfer.py service:volume:file.ext ./path/to/other.ext
   ./transfer.py service:volume:file.ext ./dest/
 
+  # Export directory into directory — creates ./dest/dir/
+  ./transfer.py service:volume:dir ./dest/
+
 For files: if the destination exists as a directory (or is the volume root), or
 ends with /, the file is placed inside it under the same basename; otherwise the
-path is the destination file (parents are created as needed). Directory transfers
-always copy contents into the destination path. --force skips the overwrite prompt.
+path is the destination file (parents are created as needed). For directories:
+a destination ending with / receives the source directory under its own name;
+otherwise the source's contents become the destination path. --force skips the
+overwrite prompt.
 """
 
 HELPER_SCRIPT = """\
@@ -310,6 +315,24 @@ def resolve_import_file_rel(rel: str, basename: str, *, dest_is_dir: bool) -> st
             return basename
         return posixpath.normpath(posixpath.join(rel, basename))
     return rel
+
+
+def resolve_import_dir_rel(rel: str, basename: str, *, dest_is_dir: bool) -> str:
+    """Resolve the volume-relative destination for a directory import."""
+    if not dest_is_dir:
+        return rel
+    return resolve_import_file_rel(rel, basename, dest_is_dir=True)
+
+
+def resolve_export_dir_host(host: Path, volume_rel: str, *, dest_is_dir: bool) -> Path:
+    """Resolve the host destination for a directory export.
+
+    A trailing slash nests the source under its basename; exporting the volume
+    root has no basename, so its contents go into the destination directly.
+    """
+    if not dest_is_dir or volume_rel == ".":
+        return host
+    return host / posixpath.basename(volume_rel)
 
 
 def resolve_export_file_host(
@@ -641,6 +664,10 @@ def main(argv: list[str] | None = None) -> None:
             )
             sys.exit(1)
 
+        rel = resolve_import_dir_rel(
+            rel, host_path.name, dest_is_dir=volume_path_is_explicit_dir
+        )
+
         if docker_volume_exists(docker_volume) and volume_path_is_file(docker_volume, rel):
             print(
                 f"{RED}✗{RESET} Cannot import a directory onto a file in the volume: "
@@ -751,6 +778,10 @@ def main(argv: list[str] | None = None) -> None:
         )
         sys.exit(1)
 
+    host_path = resolve_export_dir_host(
+        host_path, rel, dest_is_dir=host_path_is_explicit_dir
+    )
+
     loc = f"{service}:{volume_key}:{rel}"
     print(f"{BLUE}⚙{RESET} Exporting volume → host")
     print(f"{GREY}◦{RESET} Host: {host_path}")
@@ -768,7 +799,12 @@ def main(argv: list[str] | None = None) -> None:
         confirm_overwrite(str(host_path), volume_root=False, force=args.force)
         overwrite = True
     else:
-        host_path.mkdir(parents=True, exist_ok=True)
+        try:
+            ensure_parent_dir(host_path)
+        except ValueError as exc:
+            print(f"{RED}✗{RESET} {exc}", file=sys.stderr)
+            sys.exit(1)
+        host_path.mkdir()
 
     run_transfer(
         mode="export",

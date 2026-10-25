@@ -249,8 +249,9 @@ Named volumes persist even when a service is not running. `transfer` copies a ho
 # Directory as directory — contents of ./dir become volume path dir/
 transfer ./dir service:volume:dir
 
-# Directory into directory — contents of ./dir go into dest/
+# Directory into directory — trailing / places ./dir inside as dest/dir/
 transfer ./dir service:volume:dest/
+transfer service:volume:dir ./dest/
 
 # File as file — exact path (rename OK)
 transfer ./file.ext service:volume:file.ext
@@ -264,6 +265,8 @@ transfer service:volume:file.ext ./dest/
 The spec is `<service>:<volume>[:<path>]`. `volume` is the Compose key (`root`, `cache`, or a container-specific name such as `chrome_local`). `<path>` is inside that volume: omitted or `.` for the volume root, a relative path, or an absolute container path under the volume mount.
 
 For files, destinations follow cp/rsync rules: if the destination exists as a directory (or is the volume root on import), the file is placed inside it under the same basename; otherwise the path is the destination file (parent directories are created as needed). A trailing slash forces directory semantics (e.g. `service:volume:dest/` → `dest/<basename>`).
+
+For directories, a destination ending with `/` receives the source directory under its own name (`dest/<basename>/`), creating `dest/` if needed; without the slash, the source's contents become the destination path. Only that nested directory is replaced on overwrite — other entries in `dest/` are left alone.
 
 If the target already exists, the script says so and asks before overwriting (`--force` skips the prompt). Import creates the named volume if it does not exist yet; export fails if the volume or internal path is missing.
 

@@ -214,6 +214,49 @@ class ResolveImportFileRelTests(unittest.TestCase):
         )
 
 
+class ResolveImportDirRelTests(unittest.TestCase):
+    def test_contents_become_dest_without_slash(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_dir_rel("dest", "dir", dest_is_dir=False),
+            "dest",
+        )
+
+    def test_trailing_slash_nests_basename(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_dir_rel("dest", "dir", dest_is_dir=True),
+            "dest/dir",
+        )
+
+    def test_volume_root_without_slash(self) -> None:
+        self.assertEqual(
+            transfer.resolve_import_dir_rel(".", "dir", dest_is_dir=False),
+            ".",
+        )
+
+
+class ResolveExportDirHostTests(unittest.TestCase):
+    def test_contents_become_dest_without_slash(self) -> None:
+        dest = Path("/tmp/out")
+        self.assertEqual(
+            transfer.resolve_export_dir_host(dest, "a/solidify", dest_is_dir=False),
+            dest,
+        )
+
+    def test_trailing_slash_nests_basename(self) -> None:
+        dest = Path("/tmp/out")
+        self.assertEqual(
+            transfer.resolve_export_dir_host(dest, "a/solidify", dest_is_dir=True),
+            dest / "solidify",
+        )
+
+    def test_volume_root_has_no_basename(self) -> None:
+        dest = Path("/tmp/out")
+        self.assertEqual(
+            transfer.resolve_export_dir_host(dest, ".", dest_is_dir=True),
+            dest,
+        )
+
+
 class ResolveExportFileHostTests(unittest.TestCase):
     def test_into_existing_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
