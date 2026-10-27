@@ -12,7 +12,7 @@
     },
     "volumes": {
         "env": {"path": "env", "container_specific": true},
-        "cache": ".cache/pip",
+        "pip_cache": ".cache/pip",
         "uv_cache": ".cache/uv",
         "python_state": ".local/state/python"
     },
