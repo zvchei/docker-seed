@@ -16,7 +16,7 @@ import json
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, TypedDict, cast
+from typing import Any, NoReturn, TypedDict, cast
 
 RED = "\033[31m"
 GREEN = "\033[32m"
@@ -50,6 +50,13 @@ class Template(TypedDict):
     user_dockerfile: str
 
 
+def fail(message: str) -> NoReturn:
+    """Print an error set off by blank lines, after any pending output, and exit."""
+    sys.stdout.flush()
+    print(f"\n{RED}✗{RESET} Error: {message}\n", file=sys.stderr)
+    sys.exit(1)
+
+
 def parse_volume_declaration(vol_name: str, declaration: Any) -> tuple[str, bool]:
     """Return (path, container_specific) for a template volume declaration."""
     if isinstance(declaration, str):
@@ -58,26 +65,21 @@ def parse_volume_declaration(vol_name: str, declaration: Any) -> tuple[str, bool
     if isinstance(declaration, dict):
         path: Any = declaration.get("path")
         if not isinstance(path, str) or not path:
-            print(
-                f"Error: volume '{vol_name}' must define a non-empty string 'path' "
+            fail(
+                f"volume '{vol_name}' must define a non-empty string 'path' "
                 f"when using object form."
             )
-            sys.exit(1)
 
         container_specific: Any = declaration.get("container_specific", False)
         if not isinstance(container_specific, bool):
-            print(
-                f"Error: volume '{vol_name}' field 'container_specific' must be boolean."
-            )
-            sys.exit(1)
+            fail(f"volume '{vol_name}' field 'container_specific' must be boolean.")
 
         return path, container_specific
 
-    print(
-        f"Error: volume '{vol_name}' must be a string path or object "
+    fail(
+        f"volume '{vol_name}' must be a string path or object "
         f"{{'path': <str>, 'container_specific': <bool>}}."
     )
-    sys.exit(1)
 
 
 def resolve_container_volumes(name: str, merged: Merged) -> dict[str, str]:
@@ -88,30 +90,27 @@ def resolve_container_volumes(name: str, merged: Merged) -> dict[str, str]:
         vol_path, container_specific = parse_volume_declaration(vol_name, declaration)
         resolved_name: str = f"{name}_{vol_name}" if container_specific else vol_name
         if resolved_name in resolved:
-            print(
-                f"Error: volume name collision for container '{name}': "
+            fail(
+                f"volume name collision for container '{name}': "
                 f"'{resolved_name}' is declared more than once."
             )
-            sys.exit(1)
         resolved[resolved_name] = vol_path
     return resolved
 
 
 def merge_field(existing: Any, value: Any, key: str = "", method: str = "merge") -> Any:
     if method not in {"merge", "replace"}:
-        print(f"{RED}✗{RESET} Error: unknown merge method '{method}'", file=sys.stderr)
-        sys.exit(1)
+        fail(f"unknown merge method '{method}'")
 
     if (
         existing is not None
         and value is not None
         and type(existing) is not type(value)
     ):
-        print(
-            f"Error: type mismatch for field '{key}' across templates "
+        fail(
+            f"type mismatch for field '{key}' across templates "
             f"(got {type(existing).__name__} and {type(value).__name__})"
         )
-        sys.exit(1)
 
     if existing is None:
         if isinstance(value, list):
@@ -147,8 +146,7 @@ def sync_common() -> None:
     if COMMON_SRC.resolve() == COMMON_DST.resolve():
         return
     if not COMMON_SRC.is_dir():
-        print(f"{RED}✗{RESET} Error: shared common directory not found at {COMMON_SRC}", file=sys.stderr)
-        sys.exit(1)
+        fail(f"shared common directory not found at {COMMON_SRC}")
     if COMMON_DST.exists():
         shutil.rmtree(COMMON_DST)
     shutil.copytree(COMMON_SRC, COMMON_DST)
@@ -165,11 +163,10 @@ def find_template_dir(name: str) -> Path:
     if (repo_dir / "template.json").exists():
         return repo_dir
 
-    print(
-        f"Error: template '{name}' not found in "
+    fail(
+        f"template '{name}' not found in "
         f"{LOCAL_TEMPLATES_DIR} or {REPO_TEMPLATES_DIR}"
     )
-    sys.exit(1)
 
 
 def template_exists(name: str) -> bool:
@@ -189,8 +186,7 @@ def load_template(name: str) -> Template:
     tpl_dir: Path = find_template_dir(name)
     manifest_path: Path = tpl_dir / "template.json"
     if not manifest_path.exists():
-        print(f"{RED}✗{RESET} Error: template '{name}' not found at {tpl_dir}", file=sys.stderr)
-        sys.exit(1)
+        fail(f"template '{name}' not found at {tpl_dir}")
 
     with open(manifest_path) as f:
         manifest: Manifest = json.load(f)
@@ -222,8 +218,7 @@ def resolve_templates(names: list[str], _chain: list[str] | None = None) -> list
 
     for name in names:
         if name in _chain:
-            print(f"{RED}✗{RESET} Error: circular dependency detected: {' -> '.join(_chain)} -> {name}", file=sys.stderr)
-            sys.exit(1)
+            fail(f"circular dependency detected: {' -> '.join(_chain)} -> {name}")
 
         tpl_dir: Path = find_template_dir(name)
         manifest_path: Path = tpl_dir / "template.json"
@@ -304,41 +299,29 @@ def resolve_merge_source(
     template name.
     """
     if not isinstance(reference, str) or not reference:
-        print(f"{RED}✗{RESET} Error: 'templates' entries must be non-empty strings.", file=sys.stderr)
-        sys.exit(1)
+        fail("'templates' entries must be non-empty strings.")
 
     qualifier, separator, qualified_name = reference.partition(":")
     if separator:
         if qualifier != "service" or not qualified_name:
-            print(
-                f"{RED}✗{RESET} Error: invalid reference '{reference}'. "
-                "Use '<template>' or 'service:<name>'.",
-                file=sys.stderr,
+            fail(
+                f"invalid reference '{reference}'. "
+                "Use '<template>' or 'service:<name>'."
             )
-            sys.exit(1)
         if find_container(qualified_name, all_containers) is None:
-            print(
-                f"{RED}✗{RESET} Error: service '{qualified_name}' does not exist in containers.json.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+            fail(f"service '{qualified_name}' does not exist in containers.json.")
         return "service", qualified_name
 
     if is_abstract(reference):
         if find_container(reference, all_containers) is None:
-            print(
-                f"{RED}✗{RESET} Error: service '{reference}' does not exist in containers.json.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+            fail(f"service '{reference}' does not exist in containers.json.")
         return "service", reference
 
     if not template_exists(reference):
         hint: str = ""
         if find_container(reference, all_containers) is not None:
             hint = f" Did you mean 'service:{reference}'?"
-        print(f"{RED}✗{RESET} Error: template '{reference}' does not exist.{hint}", file=sys.stderr)
-        sys.exit(1)
+        fail(f"template '{reference}' does not exist.{hint}")
     return "template", reference
 
 
@@ -350,8 +333,7 @@ def merge_container_sources(
     """Merge template and service references in declared order."""
     references: Any = container.get("templates", [])
     if not isinstance(references, list):
-        print(f"{RED}✗{RESET} Error: container '{container['name']}' field 'templates' must be a list.", file=sys.stderr)
-        sys.exit(1)
+        fail(f"container '{container['name']}' field 'templates' must be a list.")
 
     merged: Merged = {"root_fragments": [], "user_fragments": []}
     seen_templates: set[str] = set()
@@ -451,30 +433,24 @@ def validate_extends(containers: list[dict[str, Any]]) -> None:
 
     def check(name: str, chain: list[str]) -> None:
         if name in chain:
-            print(f"{RED}✗{RESET} Error: circular 'extends' detected: {' -> '.join(chain + [name])}", file=sys.stderr)
-            sys.exit(1)
+            fail(f"circular 'extends' detected: {' -> '.join(chain + [name])}")
         container = next((c for c in containers if c["name"] == name), None)
         if container is None:
             return
         parent = container.get("extends")
         if parent:
             if is_abstract(name):
-                print(
-                    f"Error: abstract service '{name}' cannot extend another service."
-                )
-                sys.exit(1)
+                fail(f"abstract service '{name}' cannot extend another service.")
             if parent not in names:
-                print(
-                    f"Error: container '{name}' extends '{parent}', "
+                fail(
+                    f"container '{name}' extends '{parent}', "
                     f"which does not exist in containers.json."
                 )
-                sys.exit(1)
             if is_abstract(parent):
-                print(
-                    f"Error: container '{name}' cannot extend abstract service "
+                fail(
+                    f"container '{name}' cannot extend abstract service "
                     f"'{parent}'. Add it to 'templates' instead."
                 )
-                sys.exit(1)
             check(parent, chain + [name])
 
     for container in containers:
@@ -493,18 +469,16 @@ def build_merged_for_container(
 
     name: str = container["name"]
     if name in _chain:
-        print(
-            f"Error: circular service reference detected: "
+        fail(
+            f"circular service reference detected: "
             f"{' -> '.join(_chain + [name])}"
         )
-        sys.exit(1)
 
     parent_name: str | None = container.get("extends")
     if parent_name is not None:
         parent = next((c for c in all_containers if c["name"] == parent_name), None)
         if parent is None:
-            print(f"{RED}✗{RESET} Error: container '{name}' extends '{parent_name}', which does not exist.", file=sys.stderr)
-            sys.exit(1)
+            fail(f"container '{name}' extends '{parent_name}', which does not exist.")
 
         parent_merged = build_merged_for_container(parent, all_containers, _chain + [name])
         merged: Merged = copy.deepcopy(parent_merged)
@@ -534,8 +508,7 @@ def build_merged_for_container(
             if isinstance(container["cmd"], list):
                 merged["cmd"] = container["cmd"]
             else:
-                print(f"{RED}✗{RESET} Error: 'cmd' must be a command array (list of strings)", file=sys.stderr)
-                sys.exit(1)
+                fail("'cmd' must be a command array (list of strings)")
 
         container_main = container.get("main")
         if container_main is not None:
@@ -560,24 +533,21 @@ def build_merged_for_container(
         if isinstance(container_entrypoint, list):
             merged["entrypoint"] = container_entrypoint
         else:
-            print(f"{RED}✗{RESET} Error: 'entrypoint' must be a command array (list of strings)", file=sys.stderr)
-            sys.exit(1)
+            fail("'entrypoint' must be a command array (list of strings)")
 
     container_cmd = container.get("cmd")
     if container_cmd is not None:
         if isinstance(container_cmd, list):
             merged["cmd"] = container_cmd
         else:
-            print(f"{RED}✗{RESET} Error: 'cmd' must be a command array (list of strings)", file=sys.stderr)
-            sys.exit(1)
+            fail("'cmd' must be a command array (list of strings)")
 
     container_ports = container.get("ports")
     if container_ports is not None:
         if isinstance(container_ports, list):
             merged["ports"] = container_ports
         else:
-            print(f"{RED}✗{RESET} Error: 'ports' must be a list of port mappings (list of strings)", file=sys.stderr)
-            sys.exit(1)
+            fail("'ports' must be a list of port mappings (list of strings)")
 
     if container.get("init"):
         merged["init"] = True
@@ -759,8 +729,7 @@ def generate_compose(name: str, merged: Merged) -> str:
 
 def main() -> None:
     if not CONTAINERS_FILE.exists():
-        print(f"{RED}✗{RESET} Error: {CONTAINERS_FILE} not found.", file=sys.stderr)
-        sys.exit(1)
+        fail(f"{CONTAINERS_FILE} not found.")
 
     sync_common()
 
@@ -792,8 +761,7 @@ def main() -> None:
         else:
             references: Any = container.get("templates", [])
             if not isinstance(references, list):
-                print(f"{RED}✗{RESET} Error: container '{name}' field 'templates' must be a list.", file=sys.stderr)
-                sys.exit(1)
+                fail(f"container '{name}' field 'templates' must be a list.")
             label = ", ".join(str(reference) for reference in references)
             label = label or "(no templates)"
             print(f"\n\033[34m⚙\033[0m  Generating {name} from: {label}")
