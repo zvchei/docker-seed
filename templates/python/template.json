@@ -10,5 +10,6 @@
         "PIP_TRUSTED_HOST": "${PIP_TRUSTED_HOST}",
         "PIP_INDEX_URL": "${PIP_INDEX_URL}",
         "PYTHON_HISTORY": "/home/${CONTAINER_USER}/.local/state/python/history"
-    }
+    },
+    "cmd": ["python"]
 }
