@@ -9,8 +9,9 @@
     "volumes": {
         "chrome_config": ".config/google-chrome",
         "chrome_cache": ".cache/google-chrome",
-        "local": {
-            "path": ".local",
+        "chrome_pki": ".local/share/pki",
+        "applications": {
+            "path": ".local/share/applications",
             "container_specific": true
         }
     }

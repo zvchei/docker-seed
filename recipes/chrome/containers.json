@@ -2,11 +2,21 @@
     {
         "name": "chrome",
         "enabled": true,
-        "templates": ["node", "chrome"],
-        "cmd": ["/bin/bash"],
+        "templates": [
+            "node",
+            "chrome"
+        ],
+        "cmd": [
+            "/bin/bash"
+        ],
         "interactive": true,
         "ports": [],
-        "volumes": { "chrome_pki": ".pki", "xdg_cache": { "path": ".cache", "container_specific": true } },
+        "volumes": {
+            "xdg_cache": {
+                "path": ".cache",
+                "container_specific": true
+            }
+        },
         "env_vars": {
             "CHROME_PATH": "/usr/bin/google-chrome",
             "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/google-chrome",

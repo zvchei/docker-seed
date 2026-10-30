@@ -12,7 +12,7 @@
         "templates": ["gui", "chrome"],
         "entrypoint": ["xvfb-run", "--server-args=-screen 0 1280x800x24", "bash", "-c", "x11vnc -forever -shared & ${ENTRY}"],
         "ports": ["127.0.0.1:8901:5900"],
-        "volumes": { "chrome_pki": ".pki", "xdg_cache": { "path": ".cache", "container_specific": true } },
+        "volumes": { "xdg_cache": { "path": ".cache", "container_specific": true } },
         "env_vars": {
             "ENTRY": "google-chrome --no-sandbox --disable-dev-shm-usage --no-first-run --start-maximized --window-size=1280,800"
         }

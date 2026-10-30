@@ -262,7 +262,7 @@ transfer ./file.ext service:volume:dest/
 transfer service:volume:file.ext ./dest/
 ```
 
-The spec is `<service>:<volume>[:<path>]`. `volume` is the Compose key (`root`, `cache`, or a container-specific name such as `chrome_local`). `<path>` is inside that volume: omitted or `.` for the volume root, a relative path, or an absolute container path under the volume mount.
+The spec is `<service>:<volume>[:<path>]`. `volume` is the Compose key (`root`, `cache`, or a container-specific name such as `chrome_applications`). `<path>` is inside that volume: omitted or `.` for the volume root, a relative path, or an absolute container path under the volume mount.
 
 For files, destinations follow cp/rsync rules: if the destination exists as a directory (or is the volume root on import), the file is placed inside it under the same basename; otherwise the path is the destination file (parent directories are created as needed). A trailing slash forces directory semantics (e.g. `service:volume:dest/` → `dest/<basename>`).
 
